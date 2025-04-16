@@ -146,60 +146,6 @@ labels_list = []
 prediction_list = []
 out_list = []
 
-
-# 模型测试
-def test():
-    model.eval()
-    test_loss = 0.0
-    for step, (b_x, b_y) in enumerate(test_loader):
-        if cuda_avail:
-            b_x = b_x.to("cuda")
-            b_y = b_y.to("cuda")
-
-        _, outputs = model(b_x)
-        loss = loss_func(outputs, b_y)
-        test_loss += loss.item() * b_x.size(0)
-
-    test_loss = test_loss / len(test_dataset)
-
-    return test_loss
-
-
-def test_model(model_file):
-    # 加载训练好的模型
-    model.load_state_dict(torch.load(model_file))
-    model.eval()
-
-    # 将训练集误差初始为0.0
-    test_loss = 0.0
-    test_loss_mae = 0.0
-
-    # prediction_list用于存放测试集每个样本预测结果
-    prediction_list = np.array([])
-    true_list = np.array([])
-
-    for step, (b_x, b_y) in enumerate(test_loader):
-        if cuda_avail:
-            b_x = b_x.to("cuda")
-            b_y = b_y.to("cuda")
-
-        _, outputs = model(b_x)
-        loss = loss_func(outputs, b_y)
-        test_loss += loss.item() * b_x.size(0)
-        loss_mae = loss_func_mae(outputs, b_y)
-        test_loss_mae += loss_mae.item() * b_x.size(0)
-
-        prediction = torch.flatten(outputs, start_dim=0, end_dim=1)
-        prediction_list = np.append(prediction_list, prediction.cpu().detach().numpy())
-        true = torch.flatten(b_y, start_dim=0, end_dim=1)
-        true_list = np.append(true_list, true.cpu().detach().numpy())
-
-    mse_loss = test_loss / len(test_dataset)
-    mae_loss = test_loss_mae / len(test_dataset)
-    rmse_loss = np.sqrt(mse_loss)
-    return mae_loss, mse_loss, rmse_loss, prediction_list, true_list, file_path
-
-
 def train():
     for epoch in range(EPOCH):  # EPOCH为训练迭代次数
         model.train()  # 模型开始训练
