@@ -104,74 +104,74 @@ public class AlertServiceImpl implements AlertService {
     }
 
 
-   @Override
-   public Page<AlertDTO> getUnconfirmedAlerts(
-           Integer userId,
-           String deviceName,
-           String startTime,
-           String endTime,
-           int page,
-           int pageSize) {
+//    @Override
+//    public Page<AlertDTO> getUnconfirmedAlerts(
+//            Integer userId,
+//            String deviceName,
+//            String startTime,
+//            String endTime,
+//            int page,
+//            int pageSize) {
 
-       // 构建缓存键，包含所有查询参数以确保唯一性
-       String cacheKey = "alerts:unconfirmed:" + userId + ":"
-               + (deviceName != null ? deviceName : "null") + ":"
-               + (startTime != null ? startTime : "null") + ":"
-               + (endTime != null ? endTime : "null") + ":"
-               + page + ":" + pageSize;
+//        // 构建缓存键，包含所有查询参数以确保唯一性
+//        String cacheKey = "alerts:unconfirmed:" + userId + ":"
+//                + (deviceName != null ? deviceName : "null") + ":"
+//                + (startTime != null ? startTime : "null") + ":"
+//                + (endTime != null ? endTime : "null") + ":"
+//                + page + ":" + pageSize;
 
-       // 尝试从缓存获取
-       Object cachedResult = redisUtil.get(cacheKey);
-       if (cachedResult != null) {
-           return (Page<AlertDTO>) cachedResult;
-       }
+//        // 尝试从缓存获取
+//        Object cachedResult = redisUtil.get(cacheKey);
+//        if (cachedResult != null) {
+//            return (Page<AlertDTO>) cachedResult;
+//        }
 
-       // 处理可选的时间参数
-       LocalDateTime startDateTime = null;
-       if (startTime != null && !startTime.isEmpty()) {
-           startDateTime = LocalDateTime.parse(startTime, DateTimeFormatter.ISO_DATE_TIME);
-       }
+//        // 处理可选的时间参数
+//        LocalDateTime startDateTime = null;
+//        if (startTime != null && !startTime.isEmpty()) {
+//            startDateTime = LocalDateTime.parse(startTime, DateTimeFormatter.ISO_DATE_TIME);
+//        }
 
-       LocalDateTime endDateTime = null;
-       if (endTime != null && !endTime.isEmpty()) {
-           endDateTime = LocalDateTime.parse(endTime, DateTimeFormatter.ISO_DATE_TIME);
-       }
+//        LocalDateTime endDateTime = null;
+//        if (endTime != null && !endTime.isEmpty()) {
+//            endDateTime = LocalDateTime.parse(endTime, DateTimeFormatter.ISO_DATE_TIME);
+//        }
 
-       Pageable pageable = PageRequest.of(page - 1, pageSize);
+//        Pageable pageable = PageRequest.of(page - 1, pageSize);
 
-       // 查询未确认的警报
-       Page<Alert> alertPage = alertRepository.findUnconfirmedAlerts(
-               userId, deviceName, startDateTime, endDateTime, pageable);
+//        // 查询未确认的警报
+//        Page<Alert> alertPage = alertRepository.findUnconfirmedAlerts(
+//                userId, deviceName, startDateTime, endDateTime, pageable);
 
-       // 转换为DTO
-       List<AlertDTO> alertDTOs = alertPage.getContent().stream()
-               .map(alert -> {
-                   AlertDTO dto = new AlertDTO(alert);
+//        // 转换为DTO
+//        List<AlertDTO> alertDTOs = alertPage.getContent().stream()
+//                .map(alert -> {
+//                    AlertDTO dto = new AlertDTO(alert);
 
-                   // 获取最新的设备数据以便导出
-                   Optional<Data> latestData = dataRepository.findFirstByComponentIdOrderByTimeDesc(alert.getComponent().getId());
-                   latestData.ifPresent(data -> {
-                       dto.setHptEffMod(data.getHptEffMod());
-                       dto.setNf(data.getNf());
-                       dto.setSmFan(data.getSmFan());
-                       dto.setT24(data.getT24());
-                       dto.setWf(data.getWf());
-                       dto.setT48(data.getT48());
-                       dto.setNc(data.getNc());
-                       dto.setSmHPC(data.getSmHPC());
-                   });
+//                    // 获取最新的设备数据以便导出
+//                    Optional<Data> latestData = dataRepository.findFirstByComponentIdOrderByTimeDesc(alert.getComponent().getId());
+//                    latestData.ifPresent(data -> {
+//                        dto.setHptEffMod(data.getHptEffMod());
+//                        dto.setNf(data.getNf());
+//                        dto.setSmFan(data.getSmFan());
+//                        dto.setT24(data.getT24());
+//                        dto.setWf(data.getWf());
+//                        dto.setT48(data.getT48());
+//                        dto.setNc(data.getNc());
+//                        dto.setSmHPC(data.getSmHPC());
+//                    });
 
-                   return dto;
-               })
-               .collect(Collectors.toList());
+//                    return dto;
+//                })
+//                .collect(Collectors.toList());
 
-       PageImpl<AlertDTO> result = new PageImpl<>(alertDTOs, pageable, alertPage.getTotalElements());
+//        PageImpl<AlertDTO> result = new PageImpl<>(alertDTOs, pageable, alertPage.getTotalElements());
 
-       // 将结果放入缓存，设置2分钟过期（警报数据较为实时，缓存时间不宜过长）
-       redisUtil.set(cacheKey, result, 120);
+//        // 将结果放入缓存，设置2分钟过期（警报数据较为实时，缓存时间不宜过长）
+//        redisUtil.set(cacheKey, result, 120);
 
-       return result;
-   }
+//        return result;
+//    }
 
     @Override
     @Transactional
