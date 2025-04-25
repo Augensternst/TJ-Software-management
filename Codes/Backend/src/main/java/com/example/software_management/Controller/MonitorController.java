@@ -30,9 +30,9 @@ public class MonitorController {
     @GetMapping("/{deviceId}/health")
     public ResponseEntity<Map<String, Object>> getDeviceHealthData(@PathVariable Integer deviceId) {
         // 可以在这里添加权限检查，确保当前用户有权访问此设备
-        // int userId = GetInfo.getCurrentUserId();
+        int userId = GetInfo.getCurrentUserId();
 
-        // List<Double> healthData = dataService.getDeviceHealthData(deviceId);
+        List<Double> healthData = dataService.getDeviceHealthData(deviceId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -49,9 +49,9 @@ public class MonitorController {
     @GetMapping("/{deviceId}/energy")
     public ResponseEntity<Map<String, Object>> getDeviceEnergyData(@PathVariable Integer deviceId) {
         // 可以在这里添加权限检查，确保当前用户有权访问此设备
-        // int userId = GetInfo.getCurrentUserId();
+        int userId = GetInfo.getCurrentUserId();
 
-        // ReportDTO energyData = dataService.getDeviceEnergyData(deviceId);
+        ReportDTO energyData = dataService.getDeviceEnergyData(deviceId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -75,9 +75,9 @@ public class MonitorController {
             @RequestParam(defaultValue = "12") int pageSize) {
 
         // 可以在这里添加权限检查，确保当前用户有权访问此设备
-        // int userId = GetInfo.getCurrentUserId();
+        int userId = GetInfo.getCurrentUserId();
 
-        // ReportDTO metricCards = dataService.getDeviceMetricCards(deviceId, page, pageSize);
+        ReportDTO metricCards = dataService.getDeviceMetricCards(deviceId, page, pageSize);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
