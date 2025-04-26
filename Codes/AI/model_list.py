@@ -25,6 +25,58 @@ class ConfigTrans(object):
 config = ConfigTrans()
 
 
+class CNN_LSTM(nn.Module):
+    def __init__(self):
+        super(CNN_LSTM, self).__init__()
+
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(1, 2)),
+        )
+
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(1, 2)),
+        )
+
+        self.layer3 = nn.Sequential(
+            nn.Conv2d(32, 48, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(48),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(1, 2)),
+        )
+
+        self.lstm_layer = nn.LSTM(
+            input_size=93,
+            hidden_size=128,
+            num_layers=2,
+            batch_first=True,
+            bidirectional=True)
+
+        # Softmax
+        self.fc = nn.Sequential(
+            nn.Linear(256, 64),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 1)
+        )
+
+    def forward(self, x):  # torch.Size([96, 30, 31])
+        x = x.permute(0, 2, 1).unsqueeze(1)  # torch.Size([96, 1, 31, 30])
+        x = self.layer1(x)  # torch.Size([96, 16, 31, 15])
+        x = self.layer2(x)  # torch.Size([96, 32, 31, 7])
+        x = self.layer3(x)  # torch.Size([96, 48, 31, 3])
+        x = x.reshape(x.size(0), x.size(1), -1)  # torch.Size([96, 48, 93])
+        x, _ = self.lstm_layer(x)
+        x = x[:, -1, :]
+        feature = x.view(x.shape[0], -1)
+        x = x.view(x.shape[0], -1)
+        x = self.fc(x)
+        return feature, x
+
 class CNN_Transformer(nn.Module):
     def __init__(self):
         super(CNN_Transformer, self).__init__()
@@ -58,11 +110,11 @@ class CNN_Transformer(nn.Module):
 
         self.fc = nn.Linear(config.pad_size * config.dim_model, 1)
 
-        self.fc = nn.Sequential(
-            nn.Linear(config.pad_size * config.dim_model, 256),
-            nn.ReLU(inplace=True),
-            nn.Linear(256, 1)
-        )
+        # self.fc = nn.Sequential(
+        #     nn.Linear(config.pad_size * config.dim_model, 256),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(256, 1)
+        # )
 
     def forward(self, x):
         x = x.permute(0, 2, 1).unsqueeze(1)  # torch.Size([96, 1, 31, 30])
@@ -79,16 +131,7 @@ class CNN_Transformer(nn.Module):
         return feature, x
 
 
-class Encoder(nn.Module):
-    def __init__(self, dim_model, num_head, hidden, dropout):
-        super(Encoder, self).__init__()
-        self.attention = Multi_Head_Attention(dim_model, num_head, dropout)
-        self.feed_forward = Position_wise_Feed_Forward(dim_model, hidden, dropout)
 
-    def forward(self, x):
-        out = self.attention(x)
-        out = self.feed_forward(out)
-        return out
 
 
 class Positional_Encoding(nn.Module):
@@ -107,6 +150,17 @@ class Positional_Encoding(nn.Module):
         out = self.dropout(out)
         return out
 
+
+class Encoder(nn.Module):
+    def __init__(self, dim_model, num_head, hidden, dropout):
+        super(Encoder, self).__init__()
+        self.attention = Multi_Head_Attention(dim_model, num_head, dropout)
+        self.feed_forward = Position_wise_Feed_Forward(dim_model, hidden, dropout)
+
+    def forward(self, x):
+        out = self.attention(x)
+        out = self.feed_forward(out)
+        return out
 
 class Scaled_Dot_Product_Attention(nn.Module):
     '''Scaled Dot-Product Attention '''
@@ -156,8 +210,8 @@ class Multi_Head_Attention(nn.Module):
         Q = Q.view(batch_size * self.num_head, -1, self.dim_head)
         K = K.view(batch_size * self.num_head, -1, self.dim_head)
         V = V.view(batch_size * self.num_head, -1, self.dim_head)
-        if mask:  # TODO
-            mask = mask.repeat(self.num_head, 1, 1)  # TODO change this
+        # if mask:  # TODO
+        #     mask = mask.repeat(self.num_head, 1, 1)  # TODO change this
         scale = K.size(-1) ** -0.5  # 缩放因子
         context = self.attention(Q, K, V, scale)
 
