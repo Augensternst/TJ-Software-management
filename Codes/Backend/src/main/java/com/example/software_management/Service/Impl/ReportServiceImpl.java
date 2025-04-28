@@ -160,127 +160,127 @@ public class ReportServiceImpl implements ReportService {
         return reportDTO;
     }
 
-    // @Override
-    // public List<DataDTO> getDeviceAttributes(Integer deviceId) {
-    //     // 获取设备的最新数据
-    //     Optional<Data> latestDataOpt = dataRepository.findFirstByComponentIdOrderByTimeDesc(deviceId);
+    @Override
+    public List<DataDTO> getDeviceAttributes(Integer deviceId) {
+        // 获取设备的最新数据
+        Optional<Data> latestDataOpt = dataRepository.findFirstByComponentIdOrderByTimeDesc(deviceId);
 
-    //     if (latestDataOpt.isEmpty()) {
-    //         return Collections.emptyList();
-    //     }
+        if (latestDataOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-    //     Data latestData = latestDataOpt.get();
-    //     List<DataDTO> attributes = new ArrayList<>();
+        Data latestData = latestDataOpt.get();
+        List<DataDTO> attributes = new ArrayList<>();
 
-    //     // 添加各个属性
-    //     if (latestData.getHptEffMod() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("高压涡轮效率", latestData.getHptEffMod()));
-    //     }
+        // 添加各个属性
+        if (latestData.getHptEffMod() != null) {
+            attributes.add(DataDTO.createAttributeDTO("高压涡轮效率", latestData.getHptEffMod()));
+        }
 
-    //     if (latestData.getNf() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("风扇转速", latestData.getNf()));
-    //     }
+        if (latestData.getNf() != null) {
+            attributes.add(DataDTO.createAttributeDTO("风扇转速", latestData.getNf()));
+        }
 
-    //     if (latestData.getSmFan() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("风扇裕度", latestData.getSmFan()));
-    //     }
+        if (latestData.getSmFan() != null) {
+            attributes.add(DataDTO.createAttributeDTO("风扇裕度", latestData.getSmFan()));
+        }
 
-    //     if (latestData.getT24() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("风扇出口温度", latestData.getT24()));
-    //     }
+        if (latestData.getT24() != null) {
+            attributes.add(DataDTO.createAttributeDTO("风扇出口温度", latestData.getT24()));
+        }
 
-    //     if (latestData.getWf() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("燃油流量", latestData.getWf()));
-    //     }
+        if (latestData.getWf() != null) {
+            attributes.add(DataDTO.createAttributeDTO("燃油流量", latestData.getWf()));
+        }
 
-    //     if (latestData.getT48() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("HPT出口温度", latestData.getT48()));
-    //     }
+        if (latestData.getT48() != null) {
+            attributes.add(DataDTO.createAttributeDTO("HPT出口温度", latestData.getT48()));
+        }
 
-    //     if (latestData.getNc() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("高压压气机转速", latestData.getNc()));
-    //     }
+        if (latestData.getNc() != null) {
+            attributes.add(DataDTO.createAttributeDTO("高压压气机转速", latestData.getNc()));
+        }
 
-    //     if (latestData.getSmHPC() != null) {
-    //         attributes.add(DataDTO.createAttributeDTO("高压压气机裕度", latestData.getSmHPC()));
-    //     }
+        if (latestData.getSmHPC() != null) {
+            attributes.add(DataDTO.createAttributeDTO("高压压气机裕度", latestData.getSmHPC()));
+        }
 
-    //     return attributes;
-    // }
+        return attributes;
+    }
 
-    // @Override
-    // public Resource exportDeviceAttributes(Integer deviceId) {
-    //     try {
-    //         // 获取设备信息
-    //         Optional<Component> componentOpt = componentRepository.findById(deviceId);
-    //         if (componentOpt.isEmpty()) {
-    //             throw new RuntimeException("设备不存在");
-    //         }
-    //         Component component = componentOpt.get();
+    @Override
+    public Resource exportDeviceAttributes(Integer deviceId) {
+        try {
+            // 获取设备信息
+            Optional<Component> componentOpt = componentRepository.findById(deviceId);
+            if (componentOpt.isEmpty()) {
+                throw new RuntimeException("设备不存在");
+            }
+            Component component = componentOpt.get();
 
-    //         // 获取设备的最新数据
-    //         Optional<Data> latestDataOpt = dataRepository.findFirstByComponentIdOrderByTimeDesc(deviceId);
-    //         if (latestDataOpt.isEmpty()) {
-    //             throw new RuntimeException("设备数据不存在");
-    //         }
-    //         Data latestData = latestDataOpt.get();
+            // 获取设备的最新数据
+            Optional<Data> latestDataOpt = dataRepository.findFirstByComponentIdOrderByTimeDesc(deviceId);
+            if (latestDataOpt.isEmpty()) {
+                throw new RuntimeException("设备数据不存在");
+            }
+            Data latestData = latestDataOpt.get();
 
-    //         // 创建工作簿
-    //         Workbook workbook = new XSSFWorkbook();
-    //         Sheet sheet = workbook.createSheet("设备属性");
+            // 创建工作簿
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("设备属性");
 
-    //         // 设置标题行样式
-    //         CellStyle headerStyle = workbook.createCellStyle();
-    //         Font headerFont = workbook.createFont();
-    //         headerFont.setBold(true);
-    //         headerStyle.setFont(headerFont);
+            // 设置标题行样式
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
 
-    //         // 创建标题行
-    //         Row headerRow = sheet.createRow(0);
-    //         String[] columns = {
-    //                 "设备ID", "设备名称", "高压涡轮效率", "风扇转速", "风扇裕度",
-    //                 "风扇出口温度", "燃油流量", "HPT出口温度", "高压压气机转速", "高压压气机裕度"
-    //         };
+            // 创建标题行
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {
+                    "设备ID", "设备名称", "高压涡轮效率", "风扇转速", "风扇裕度",
+                    "风扇出口温度", "燃油流量", "HPT出口温度", "高压压气机转速", "高压压气机裕度"
+            };
 
-    //         for (int i = 0; i < columns.length; i++) {
-    //             Cell cell = headerRow.createCell(i);
-    //             cell.setCellValue(columns[i]);
-    //             cell.setCellStyle(headerStyle);
-    //         }
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
 
-    //         // 创建数据行
-    //         Row dataRow = sheet.createRow(1);
-    //         dataRow.createCell(0).setCellValue(component.getId());
-    //         dataRow.createCell(1).setCellValue(component.getName());
+            // 创建数据行
+            Row dataRow = sheet.createRow(1);
+            dataRow.createCell(0).setCellValue(component.getId());
+            dataRow.createCell(1).setCellValue(component.getName());
 
-    //         // 设置属性值
-    //         setCellValue(dataRow.createCell(2), latestData.getHptEffMod());
-    //         setCellValue(dataRow.createCell(3), latestData.getNf());
-    //         setCellValue(dataRow.createCell(4), latestData.getSmFan());
-    //         setCellValue(dataRow.createCell(5), latestData.getT24());
-    //         setCellValue(dataRow.createCell(6), latestData.getWf());
-    //         setCellValue(dataRow.createCell(7), latestData.getT48());
-    //         setCellValue(dataRow.createCell(8), latestData.getNc());
-    //         setCellValue(dataRow.createCell(9), latestData.getSmHPC());
+            // 设置属性值
+            setCellValue(dataRow.createCell(2), latestData.getHptEffMod());
+            setCellValue(dataRow.createCell(3), latestData.getNf());
+            setCellValue(dataRow.createCell(4), latestData.getSmFan());
+            setCellValue(dataRow.createCell(5), latestData.getT24());
+            setCellValue(dataRow.createCell(6), latestData.getWf());
+            setCellValue(dataRow.createCell(7), latestData.getT48());
+            setCellValue(dataRow.createCell(8), latestData.getNc());
+            setCellValue(dataRow.createCell(9), latestData.getSmHPC());
 
-    //         // 自动调整列宽
-    //         for (int i = 0; i < columns.length; i++) {
-    //             sheet.autoSizeColumn(i);
-    //         }
+            // 自动调整列宽
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
 
-    //         // 写入字节数组
-    //         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    //         workbook.write(outputStream);
-    //         workbook.close();
+            // 写入字节数组
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
 
-    //         // 创建资源
-    //         ByteArrayResource resource = new ByteArrayResource(outputStream.toByteArray());
-    //         return resource;
+            // 创建资源
+            ByteArrayResource resource = new ByteArrayResource(outputStream.toByteArray());
+            return resource;
 
-    //     } catch (Exception e) {
-    //         throw new RuntimeException("导出设备属性失败: " + e.getMessage(), e);
-    //     }
-    // }
+        } catch (Exception e) {
+            throw new RuntimeException("导出设备属性失败: " + e.getMessage(), e);
+        }
+    }
 
     /**
      * 辅助方法：设置单元格值
