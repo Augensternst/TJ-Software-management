@@ -109,5 +109,399 @@
 </script>
 
 <style scoped>
-.
+.report-system {
+  --bgcolor: #0B1739;
+  --my-gap: 12px;
+  --my-mb: 12px;
+  height: 100%;
+}
+
+
+.data-section1 {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: var(--my-gap);
+  margin-bottom: var(--my-mb);
+  height: 45%;
+}
+
+.data-section2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--my-gap);
+  margin-bottom: var(--my-mb);
+  height: calc(55% - var(--my-mb));
+}
+
+.handling-situation {
+  display: inline-block;
+  justify-content: space-between;
+
+}
+
+.today-status {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--my-gap);
+  height: 40%;
+  margin-bottom: var(--my-mb);
+}
+
+.stats-card {
+  height: calc(60% - var(--my-mb));
+  background: var(--bgcolor);
+  background-image: url("@/assets/ReportSystem/box2.svg");
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.week-stats-card {
+  display: inline-block;
+  background: var(--bgcolor);
+  background-image: url("@/assets/ReportSystem/box3.svg");
+  background-size: 100% 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+
+}
+
+.device-control {
+  background: var(--bgcolor);
+  border-radius: 8px;
+  background-image: url("@/assets/ReportSystem/box4.svg");
+  background-size: 100% 100%;
+  position: relative;
+}
+
+.device-header {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.device-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--my-gap);
+}
+
+.trend-section {
+  background: var(--bgcolor);
+  background-image: url("@/assets/ReportSystem/box5.svg");
+  background-size: 100% 100%;
+  border-radius: 12px;
+}
+
+.week-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--my-gap);
+  margin: 15px 0;
+}
+
+.process-unit {
+  background: var(--bgcolor);
+  background-image: url("@/assets/ReportSystem/box1.png");
+  background-size: 100% 100%;
+  border-radius: 10px;
+}
+
+
+/*文字效果*/
+.text-processing {
+
+  font-family: Work Sans, serif;
+  font-weight: 500;
+  font-size: calc(1.5vw + 0.3vh);
+  height: 5rem;
+  line-height: 4rem;
+  letter-spacing: 0%;
+  color: #AEB9E1;
+}
+
+/*数字效果*/
+
+.highlight-number {
+  height: 1rem;
+  line-height: 1rem;
+  font-family: Work Sans, cursive;
+  font-weight: 900;
+  font-size: calc(1.3vw + 2vh);
+
+  letter-spacing: 0px;
+}
+
+.number-not-process {
+  color: #FDB52A;
+
+}
+
+.number-have-process {
+  color: #14CA74;
+}
+
+.stats-title {
+  font-family: Work Sans, cursive;
+  font-weight: 100;
+  font-size: calc(0.8vw + 1vh);
+  line-height: 3rem;
+  height: 3rem;
+  letter-spacing: 0%;
+  color: #90FFDC;
+
+}
+
+.stats-title2 {
+  line-height: 2rem;
+  height: 2rem;
+  font-family: Work Sans, serif;
+  font-weight: 500;
+  font-size: calc(0.8vw + 1vh);
+  letter-spacing: 0%;
+  color: #68F0EB;
+}
+
+.stats-title3 {
+  line-height: 2.6rem;
+  height: 2.6rem;
+  font-family: Work Sans, serif;
+  font-weight: 500;
+  font-size: calc(0.8vw + 1vh);
+
+  letter-spacing: 0%;
+  color: #68F0EB;
+
+}
+
+.stats-numbers {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  border-top: 1px solid white;
+  border-bottom: 1px solid white;
+}
+
+.stats-numbers .this-week-info {
+  color: #90FFDC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font-size: calc(0.8vw + 1vh);
+  font-weight: bold;
+}
+
+.stats-numbers .medium {
+  border-left: 1px solid white;
+  border-right: 1px solid white;
+  width: 33%; /* 让中间的占 1/3 宽度 */
+  flex: none;
+}
+
+
+.stats-table {
+  width: 90%;
+  height: 68%;
+  margin: auto;
+  border-collapse: collapse;
+  color: #90FFDC;
+  text-align: center;
+  font-size: calc(0.8vw + 1vh);
+  font-family: Work Sans, cursive;
+
+}
+
+.stats-table th, .stats-table td {
+  border: 1px solid white;
+  width: 33.33%;
+}
+
+.stats-table td {
+  padding: 1px;
+}
+
+.stats-table th {
+  padding: 5px;
+
+}
+
+/* 让最左列和最右列不显示边框 */
+.stats-table th:first-child,
+.stats-table td:first-child {
+  border-left: none;
+}
+
+.stats-table th:last-child,
+.stats-table td:last-child {
+  border-right: none;
+}
+
+/* 调整第二行（数据行）高度 */
+.stats-table tr:nth-child(1) td {
+  min-height: 20%; /* 你可以调整这个值 */
+}
+
+.stats-table tr:nth-child(2) td {
+  height: 70%; /* 你可以调整这个值 */
+}
+
+.stats-table .number {
+  font-size: calc(1vw + 1.3vh);
+  font-weight: bold;
+}
+
+.stats-table .green {
+  color: #00FF99;
+}
+
+.stats-table .orange {
+  color: #FF9933;
+}
+
+.device-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 10%;
+}
+
+.row {
+  display: flex;
+  gap: 10px; /* 控制行内元素间距 */
+  align-items: center;
+}
+
+
+.device-actions {
+  display: flex;
+  width: 50%;
+}
+
+.device-actions .btn {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.device-actions .change {
+  background-color: #081028;
+  background-image: url("@/assets/ReportSystem/btn1.svg");
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  color: #68F0EB;
+  width: 70%;
+  text-align: left;
+  border-radius: 8px;
+  font-size: 1em;
+  word-break:keep-all;
+  overflow:hidden;
+}
+
+.device-actions .output {
+  background-color: #68F0EB;
+  color: #7D30CA;
+  border-radius: 6px;
+  width: 10%;
+  font-size: 1em;
+  word-break:keep-all;
+  overflow:hidden;
+}
+
+.device-options .current-device {
+  display: flex;
+  color: #68F0EB;
+  background-color: #D9D9D91A;
+  padding: 20px 15px;
+  font-size: calc(1vw + 1.5vh);
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.device-options .label {
+  color: #68F0EB;
+  font-family: Work Sans, serif;
+  font-size: calc(1vw + 1.5vh);
+  margin: 0 auto;
+}
+
+/* 设备选择器弹窗样式 */
+.device-selector-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.device-selector-content {
+  background-color: #0B1739;
+  border: 2px solid #68F0EB;
+  border-radius: 10px;
+  padding: 20px;
+  width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.device-selector-content h3 {
+  color: #68F0EB;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.device-selector-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.device-selector-content li {
+  color: #90FFDC;
+  padding: 10px 15px;
+  margin-bottom: 8px;
+  background-color: rgba(104, 240, 235, 0.1);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.device-selector-content li:hover {
+  background-color: rgba(104, 240, 235, 0.3);
+}
+
+.device-selector-content button {
+  display: block;
+  margin: 15px auto 0;
+  padding: 8px 20px;
+  background-color: #68F0EB;
+  color: #0B1739;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.device-selector-content button:hover {
+  background-color: #90FFDC;
+}
+
+.image-container {
+  width: 50%;
+  max-width: 350px;
+
+}
+
+.aspect-ratio-image {
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
 </style>
