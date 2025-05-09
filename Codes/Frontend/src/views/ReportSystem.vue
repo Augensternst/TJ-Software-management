@@ -105,7 +105,206 @@
 </template>
 
 <script>
+import BarChart from "@/components/BarChart.vue";
+import LineChart from "@/components/LineChart.vue";
+import AeroEngineChart from "@/components/CircularDiagram.vue";
+import {
+  getTodayAlertStats,
+  getAllAlertStats,
+  getWeeklyAlertStats,
+  getDeviceList,
+  exportDeviceAttributes,
+  getDeviceById
+} from '@/api/reportSystemApi';
 
+export default {
+  name: 'ReportSystem',
+  components: {AeroEngineChart, LineChart, BarChart},
+  data() {
+    return {
+      // 初始空数据
+      todayStats: {
+        processed: 0,
+        notProcessed: 0
+      },
+      totalStats: {
+        total: 0,
+        processed: 0,
+        notProcessed: 0
+      },
+      weekStats: {
+        total: 0,
+        processed: 0,
+        notProcessed: 0
+      },
+      devices: [],
+      currentDevice: {
+        id: "",
+        name: "加载中..."
+      },
+      showDeviceSelector: false,
+      deviceData: {},
+      chartData: {
+        xAxis: ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
+        series: [
+          {
+            name: '已处理',
+            data: [0, 0, 0, 0, 0, 0, 0]
+          },
+          {
+            name: '未处理',
+            data: [0, 0, 0, 0, 0, 0, 0]
+          }
+        ]
+      },
+    }
+  },
+  created() {
+    // 在组件创建时加载所有数据
+    this.fetchTodayStats();
+    this.fetchTotalStats();
+    this.fetchWeekStats();
+    this.fetchDevices();
+  },
+  methods: {
+    // 获取今日处理情况
+    async fetchTodayStats() {
+      try {
+        const response = await getTodayAlertStats();
+        console.log('今日警报数据:', response);
+        if (response.data.success) {
+          this.todayStats = {
+            processed: response.data.confirmedToday,
+            notProcessed: response.data.unconfirmedToday
+          };
+        }
+      } catch (error) {
+        console.error('获取今日数据失败:', error);
+        // 使用默认数据
+        this.todayStats = {
+          processed: 3,
+          notProcessed: 3
+        };
+      }
+    },
+
+    // 获取总体统计数据
+    async fetchTotalStats() {
+      try {
+        const response = await getAllAlertStats();
+        console.log('全局警报数据:', response);
+        if (response.data.success) {
+          this.totalStats = {
+            total: response.data.totalAlerts,
+            processed: response.data.confirmed,
+            notProcessed: response.data.unconfirmed
+          };
+        }
+      } catch (error) {
+        console.error('获取总体统计数据失败:', error);
+        // 使用默认数据
+        this.totalStats = {
+          total: 730,
+          processed: 623,
+          notProcessed: 97
+        };
+      }
+    },
+
+    // 获取本周统计数据
+    async fetchWeekStats() {
+      try {
+        const response = await getWeeklyAlertStats();
+        console.log('周警报数据:', response);
+        if (response.data.success) {
+          this.weekStats = {
+            total: response.data.totalWeekly,
+            processed: response.data.confirmedWeekly,
+            notProcessed: response.data.unconfirmedWeekly
+          };
+
+          // 更新周趋势数据
+          this.updateWeekTrendChart(response.data.dailyStats);
+        }
+      } catch (error) {
+        console.error('获取周统计数据失败:', error);
+        // 使用默认数据
+        this.weekStats = {
+          total: 623,
+          processed: 623,
+          notProcessed: 97
+        };
+      }
+    },
+
+    // 更新周趋势图表
+    updateWeekTrendChart(dailyStats) {
+      if (!dailyStats || !dailyStats.length) return;
+
+      const days = dailyStats.map(stat => {
+        // 将日期格式化为星期几
+        const date = new Date(stat.date);
+        const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        return weekDays[date.getDay()];
+      });
+
+      const confirmed = dailyStats.map(stat => stat.confirmed);
+      const unconfirmed = dailyStats.map(stat => stat.unconfirmed);
+
+      this.chartData = {
+        xAxis: days,
+        series: [
+          {
+            name: '已处理',
+            data: confirmed
+          },
+          {
+            name: '未处理',
+            data: unconfirmed
+          }
+        ]
+      };
+    },
+
+    // 获取设备列表
+    async fetchDevices() {
+      try {
+        const response = await getDeviceList();
+        console.log('设备列表数据:', response);
+        if (response.data.success) {
+          this.devices = response.data.devices.map(device => ({
+            id: device.deviceId,
+            name: device.name,
+            imgSrc: device.picture || require('@/assets/ReportSystem/example.png')
+          }));
+
+          // 默认选择第一个设备
+          if (this.devices.length > 0) {
+            this.selectDevice(this.devices[0]);
+          }
+        }
+      } catch (error) {
+        console.error('获取设备列表失败:', error);
+        // 使用默认数据
+        this.devices = [
+          {
+            "id": "1534",
+            "name": "航空发动机A1",
+            "imgSrc": require("@/assets/ReportSystem/example.png")
+          },
+          {
+            "id": "1535",
+            "name": "航空发动机A2",
+            "imgSrc": require("@/assets/ReportSystem/example.png")
+          }
+        ];
+        this.currentDevice = this.devices[0];
+      }
+    },
+
+
+
+}
 </script>
 
 <style scoped>
