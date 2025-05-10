@@ -303,7 +303,26 @@ export default {
     },
 
 
+    // 获取设备详细信息
+    async fetchDeviceDetails(deviceId) {
+      try {
+        console.log("设备id",deviceId);
+        const response = await getDeviceById(deviceId);
+        console.log('设备详细信息:', response);
+        if (response.data.success) {
+          // 更新当前设备的名称和图片
+          this.currentDevice.name = response.data.deviceName;
+          if (response.data.picture) {
+            this.currentDevice.imgSrc = response.data.picture;
+          }
+        }
+      } catch (error) {
+        console.error('获取设备详细信息失败:', error);
+      }
+    },
 
+   
+  }
 }
 </script>
 
