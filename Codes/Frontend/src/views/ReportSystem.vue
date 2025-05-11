@@ -321,7 +321,29 @@ export default {
       }
     },
 
-   
+    // 选择设备
+    async selectDevice(device) {
+      this.currentDevice = device;
+      this.showDeviceSelector = false;
+      console.log("当前设备列表",device);
+
+
+      await this.fetchDeviceDetails(device.id);
+    },
+
+    // 导出数据功能
+    async exportData() {
+      try {
+        const deviceId = this.currentDevice.id;
+        const response = await exportDeviceAttributes(deviceId);
+        console.log(response)
+
+        // 创建Blob对象并下载
+        const blob = new Blob([response.data], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const url = window.URL.createObjectURL(blob);
+
+
+    }
   }
 }
 </script>
