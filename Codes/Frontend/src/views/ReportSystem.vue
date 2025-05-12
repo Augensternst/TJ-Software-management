@@ -342,7 +342,27 @@ export default {
         const blob = new Blob([response.data], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
         const url = window.URL.createObjectURL(blob);
 
+        // 创建下载链接
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = `设备${deviceId}属性.xlsx`;
 
+        // 触发下载
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        // 释放URL对象
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('导出数据失败:', error);
+        // 如果有Element UI，可以使用Message组件
+        if (this.$message) {
+          this.$message.error('导出数据失败，请稍后重试');
+        } else {
+          alert('导出数据失败，请稍后重试');
+        }
+      }
     }
   }
 }
