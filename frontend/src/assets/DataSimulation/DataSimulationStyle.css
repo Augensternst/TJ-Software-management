@@ -1,0 +1,121 @@
+.data-simulation {
+    padding: 1rem;
+    display:flex;
+    flex-direction: column;
+    height:80vh;
+  }
+
+/*上部分*/
+.content{
+    flex:0.7;
+    padding:1rem;
+    display:flex;
+    flex-direction:row;
+
+    justify-content: space-around;
+}
+/*下部分*/
+.start-simulation{
+    flex:0.3;
+    display:flex;
+
+    justify-content: center;
+    align-items: center;
+}
+
+/*上排深色边框*/
+.data-result{
+    display:flex;
+    background-color: #0B1739;
+    flex:0.49;
+    border-radius: 12px; /* 设置圆角 */
+    padding:1%;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: stretch;
+
+}
+
+/*左边选择整体*/
+.select{
+    flex:0.2;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-around;
+
+}
+/*左边上传文件*/
+.upload-file{
+    flex:0.5;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-around;
+
+
+}
+
+/*模拟结果 单行*/
+.simulation-result{
+    flex:0.2;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+}
+
+/*左边输入框*/
+.input{
+    background: #081028;
+    flex:0.8;
+    margin-top:2%;
+    margin-bottom:2%;
+    border-radius: 12px;
+
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+}
+
+/*右边标签*/
+.simulation-label{
+    align-content: center;
+    background-color: #081028;
+    flex:0.2;
+    border-radius: 12px;
+    height:3.3vw;
+
+    align-self: center;
+}
+
+/*结果值*/
+.simulation-value{
+    flex:0.7;
+    justify-self: center;
+    align-self: center;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+/*圆环图片*/
+.simulation-health {
+    width: 30% !important; /* 宽度占满父容器 */
+    height: auto !important; /* 高度自适应 */
+    aspect-ratio: 1.5; /* 保持宽高比为 1:1 */
+
+}
+
+/*字体*/
+.worksans-font{
+    font-size: 1vw;
+    font-family: 'Work Sans', sans-serif;
+    color:#68F0EB;
+}
+
+.worksans-font-green{
+    font-size: 1vw;
+    font-family: 'Work Sans', sans-serif;
+    color:#55F0BD;
+}
+/*箭头*/
