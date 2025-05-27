@@ -20,10 +20,10 @@ public class ComponentDTO {
     private String picture;
     private Integer status;
     private LocalDateTime warningTime;
-
-    // Additional fields for detailed views
-    private Integer userId;
-    private String username;
+//
+//    // Additional fields for detailed views
+//    private Integer userId;
+//    private String username;
 
     // Constructor from Component entity
     public ComponentDTO(Component component) {
@@ -32,11 +32,11 @@ public class ComponentDTO {
         this.picture = component.getPic();
         this.status = component.getStatus();
         this.warningTime = component.getWarningTime();
-
-        if (component.getUser() != null) {
-            this.userId = component.getUser().getId();
-            this.username = component.getUser().getUsername();
-        }
+//
+//        if (component.getUser() != null) {
+//            this.userId = component.getUser().getId();
+//            this.username = component.getUser().getUsername();
+//        }
     }
 
     // Simplified constructor for listing

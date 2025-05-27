@@ -2,6 +2,7 @@ package com.example.software_management.Controller;
 
 import com.example.software_management.DTO.DataDTO;
 import com.example.software_management.DTO.ReportDTO;
+import com.example.software_management.Security.GetInfo;
 import com.example.software_management.Service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,9 @@ public class DataController {
      */
     @GetMapping("/monitor/{deviceId}/health")
     public ResponseEntity<Map<String, Object>> getDeviceHealthData(@PathVariable Integer deviceId) {
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
+
         List<Double> healthData = dataService.getDeviceHealthData(deviceId);
 
         Map<String, Object> response = new HashMap<>();
@@ -45,6 +49,9 @@ public class DataController {
      */
     @GetMapping("/monitor/{deviceId}/energy")
     public ResponseEntity<Map<String, Object>> getDeviceEnergyData(@PathVariable Integer deviceId) {
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
+
         ReportDTO energyData = dataService.getDeviceEnergyData(deviceId);
 
         Map<String, Object> response = new HashMap<>();
@@ -68,6 +75,9 @@ public class DataController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "4") int pageSize) {
 
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
+
         ReportDTO metricCards = dataService.getDeviceMetricCards(deviceId, page, pageSize);
 
         Map<String, Object> response = new HashMap<>();
@@ -85,6 +95,9 @@ public class DataController {
      */
     @GetMapping("/monitor/{deviceId}/attributes")
     public ResponseEntity<Map<String, Object>> getDeviceAttributes(@PathVariable Integer deviceId) {
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
+
         List<DataDTO> attributes = dataService.getDeviceAttributes(deviceId);
 
         Map<String, Object> response = new HashMap<>();
@@ -101,6 +114,9 @@ public class DataController {
      */
     @GetMapping("/monitor/{deviceId}/overall-health")
     public ResponseEntity<Map<String, Object>> getDeviceOverallHealth(@PathVariable Integer deviceId) {
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
+
         Double healthIndex = dataService.getDeviceOverallHealth(deviceId);
 
         Map<String, Object> response = new HashMap<>();

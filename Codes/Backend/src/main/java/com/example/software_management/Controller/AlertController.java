@@ -2,6 +2,7 @@ package com.example.software_management.Controller;
 
 import com.example.software_management.DTO.AlertDTO;
 import com.example.software_management.Service.AlertService;
+import com.example.software_management.Security.GetInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -27,7 +28,6 @@ public class AlertController {
 
     /**
      * 4.1 获取用户未确认的警报设备
-     * @param userId 用户ID
      * @param deviceName 设备名称（可选，模糊匹配）
      * @param startTime 开始时间（可选）
      * @param endTime 结束时间（可选）
@@ -37,12 +37,13 @@ public class AlertController {
      */
     @GetMapping("/getUnconfirmedAlerts")
     public ResponseEntity<Map<String, Object>> getUnconfirmedAlerts(
-            @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false) String deviceName,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
+
+        int userId = GetInfo.getCurrentUserId();
 
         Page<AlertDTO> alertPage = alertService.getUnconfirmedAlerts(
                 userId, deviceName, startTime, endTime, page, pageSize);
@@ -58,14 +59,13 @@ public class AlertController {
     /**
      * 4.2 批量更新设备警报状态为已确认
      * @param requestBody 包含警报ID列表的请求体
-     * @param userId 用户ID
      * @return 确认结果
      */
     @PostMapping("/confirmAlert")
     public ResponseEntity<Map<String, Object>> confirmAlerts(
-            @RequestBody Map<String, List<Integer>> requestBody,
-            @RequestAttribute("userId") Integer userId) {
+            @RequestBody Map<String, List<Integer>> requestBody) {
 
+        int userId = GetInfo.getCurrentUserId();
         List<Integer> alertIds = requestBody.get("alertIds");
         Map<String, Object> result = alertService.confirmAlerts(alertIds, userId);
 
@@ -89,13 +89,12 @@ public class AlertController {
 
     /**
      * 4.4 导出用户未确认的警报设备至XLSX
-     * @param userId 用户ID
      * @return XLSX文件
      */
     @GetMapping("/exportAlertsToXLSX")
-    public ResponseEntity<Resource> exportAlertsToXLSX(
-            @RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<Resource> exportAlertsToXLSX() {
 
+        int userId = GetInfo.getCurrentUserId();
         Resource resource = alertService.exportAlertsToXLSX(userId);
 
         return ResponseEntity.ok()
@@ -107,13 +106,12 @@ public class AlertController {
 
     /**
      * 4.5 预警状态分布
-     * @param userId 用户ID
      * @return 各状态的警报数量
      */
     @GetMapping("/status-summary")
-    public ResponseEntity<Map<String, Object>> getAlertStatusSummary(
-            @RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<Map<String, Object>> getAlertStatusSummary() {
 
+        int userId = GetInfo.getCurrentUserId();
         List<Map<String, Object>> statusSummary = alertService.getAlertStatusSummary(userId);
 
         Map<String, Object> response = new HashMap<>();

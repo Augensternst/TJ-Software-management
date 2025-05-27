@@ -2,6 +2,7 @@ package com.example.software_management.Controller;
 
 import com.example.software_management.DTO.DataDTO;
 import com.example.software_management.DTO.ReportDTO;
+import com.example.software_management.Security.GetInfo;
 import com.example.software_management.Service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -27,13 +28,11 @@ public class ReportController {
 
     /**
      * 5.1 获取用户今日警报统计
-     * @param userId 用户ID
      * @return 今日警报统计
      */
     @GetMapping("/alerts/getTodayAlertStats")
-    public ResponseEntity<Map<String, Object>> getTodayAlertStats(
-            @RequestAttribute("userId") Integer userId) {
-
+    public ResponseEntity<Map<String, Object>> getTodayAlertStats() {
+        int userId = GetInfo.getCurrentUserId();
         Map<String, Long> stats = reportService.getTodayAlertStats(userId);
 
         Map<String, Object> response = new HashMap<>();
@@ -46,13 +45,11 @@ public class ReportController {
 
     /**
      * 5.2 获取用户所有警报统计（全局）
-     * @param userId 用户ID
      * @return 所有警报统计
      */
     @GetMapping("/alerts/getAllAlertStats")
-    public ResponseEntity<Map<String, Object>> getAllAlertStats(
-            @RequestAttribute("userId") Integer userId) {
-
+    public ResponseEntity<Map<String, Object>> getAllAlertStats() {
+        int userId = GetInfo.getCurrentUserId();
         Map<String, Long> stats = reportService.getAllAlertStats(userId);
 
         Map<String, Object> response = new HashMap<>();
@@ -66,13 +63,11 @@ public class ReportController {
 
     /**
      * 5.3 获取本周警报统计（按天分组）
-     * @param userId 用户ID
      * @return 本周警报统计
      */
     @GetMapping("/alerts/getWeeklyAlertStats")
-    public ResponseEntity<Map<String, Object>> getWeeklyAlertStats(
-            @RequestAttribute("userId") Integer userId) {
-
+    public ResponseEntity<Map<String, Object>> getWeeklyAlertStats() {
+        int userId = GetInfo.getCurrentUserId();
         ReportDTO weeklyStats = reportService.getWeeklyAlertStats(userId);
 
         Map<String, Object> response = new HashMap<>();
@@ -93,6 +88,8 @@ public class ReportController {
     @GetMapping("/devices/getDeviceAttributes")
     public ResponseEntity<Map<String, Object>> getDeviceAttributes(
             @RequestParam Integer deviceId) {
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
 
         List<DataDTO> attributes = reportService.getDeviceAttributes(deviceId);
 
@@ -111,6 +108,8 @@ public class ReportController {
     @GetMapping("/devices/exportDeviceAttributes")
     public ResponseEntity<Resource> exportDeviceAttributes(
             @RequestParam Integer deviceId) {
+        // 可以在这里添加权限检查，确保当前用户有权访问此设备
+        // int userId = GetInfo.getCurrentUserId();
 
         Resource resource = reportService.exportDeviceAttributes(deviceId);
 

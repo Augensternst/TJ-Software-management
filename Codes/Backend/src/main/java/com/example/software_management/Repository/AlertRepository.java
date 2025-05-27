@@ -1,6 +1,7 @@
 package com.example.software_management.Repository;
 
 import com.example.software_management.Model.Alert;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,11 @@ import java.util.List;
 
 @Repository
 public interface AlertRepository extends JpaRepository<Alert, Integer> {
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Alert a WHERE a.id IN :ids")
+    int deleteByIdIn(@Param("ids") List<Integer> ids);
 
     /**
      * 查询用户未确认的警报设备

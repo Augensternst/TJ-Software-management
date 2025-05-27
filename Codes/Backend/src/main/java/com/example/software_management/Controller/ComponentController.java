@@ -2,6 +2,7 @@ package com.example.software_management.Controller;
 
 import com.example.software_management.DTO.ComponentDTO;
 import com.example.software_management.DTO.ReportDTO;
+import com.example.software_management.Security.GetInfo;
 import com.example.software_management.Service.ComponentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,11 +26,11 @@ public class ComponentController {
 
     /**
      * 获取当前用户拥有的设备数
-     * @param userId 用户ID
      * @return 设备数量
      */
     @GetMapping("/user/devices/count")
-    public ResponseEntity<Map<String, Object>> getUserDeviceCount(@RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<Map<String, Object>> getUserDeviceCount() {
+        int userId = GetInfo.getCurrentUserId();
         long deviceCount = componentService.getUserDeviceCount(userId);
 
         Map<String, Object> response = new HashMap<>();
@@ -41,7 +42,6 @@ public class ComponentController {
 
     /**
      * 获取当前用户的所有设备列表
-     * @param userId 用户ID
      * @param searchQuery 搜索关键词
      * @param page 页码
      * @param pageSize 每页条数
@@ -49,11 +49,11 @@ public class ComponentController {
      */
     @GetMapping("/user/devices")
     public ResponseEntity<Map<String, Object>> getUserDevices(
-            @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false) String searchQuery,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
 
+        int userId = GetInfo.getCurrentUserId();
         Page<ComponentDTO> devicePage = componentService.getUserDevices(userId, searchQuery, page, pageSize);
 
         Map<String, Object> response = new HashMap<>();
@@ -73,11 +73,11 @@ public class ComponentController {
 
     /**
      * 获取用户所有设备的状态分布
-     * @param userId 用户ID
      * @return 状态分布列表
      */
     @GetMapping("/user/devices/status-summary")
-    public ResponseEntity<Map<String, Object>> getUserDeviceStatusSummary(@RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<Map<String, Object>> getUserDeviceStatusSummary() {
+        int userId = GetInfo.getCurrentUserId();
         List<Map<String, Object>> statusSummary = componentService.getUserDeviceStatusSummary(userId);
 
         Map<String, Object> response = new HashMap<>();
@@ -89,11 +89,11 @@ public class ComponentController {
 
     /**
      * 获取当前用户所有有缺陷的设备（状态 ≠ 1）
-     * @param userId 用户ID
      * @return 有缺陷的设备列表
      */
     @GetMapping("/user/devices/defective")
-    public ResponseEntity<Map<String, Object>> getUserDefectiveDevices(@RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<Map<String, Object>> getUserDefectiveDevices() {
+        int userId = GetInfo.getCurrentUserId();
         List<ComponentDTO> defectiveDevices = componentService.getUserDefectiveDevices(userId);
 
         Map<String, Object> response = new HashMap<>();
@@ -161,12 +161,11 @@ public class ComponentController {
 
     /**
      * 获取预警状态分布（复用设备状态分布接口）
-     * @param userId 用户ID
      * @return 状态分布列表
      */
     @GetMapping("/alerts/status-summary")
-    public ResponseEntity<Map<String, Object>> getAlertStatusSummary(@RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<Map<String, Object>> getAlertStatusSummary() {
         // 直接复用设备状态分布接口
-        return getUserDeviceStatusSummary(userId);
+        return getUserDeviceStatusSummary();
     }
 }

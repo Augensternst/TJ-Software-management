@@ -143,26 +143,23 @@ public class AlertServiceImpl implements AlertService {
     @Override
     @Transactional
     public Map<String, Object> deleteAlerts(List<Integer> alertIds) {
+        // todo:检查哪些id不存在 把不存在的id也加入到failed中
         Map<String, Object> result = new HashMap<>();
         List<Integer> failedIds = new ArrayList<>();
 
         try {
-            // 获取当前存在的警报
-            List<Alert> existingAlerts = alertRepository.findAllById(alertIds);
-            Set<Integer> existingIds = existingAlerts.stream()
-                    .map(Alert::getId)
-                    .collect(Collectors.toSet());
+            // 直接尝试删除，捕获不存在的ID
+            int deletedCount = alertRepository.deleteByIdIn(alertIds);
 
-            // 找出不存在的ID
-            failedIds = alertIds.stream()
-                    .filter(id -> !existingIds.contains(id))
+            // 检查哪些ID未被删除
+            List<Alert> remainingAlerts = alertRepository.findAllById(alertIds);
+            failedIds = remainingAlerts.stream()
+                    .map(Alert::getId)
                     .collect(Collectors.toList());
 
-            // 删除存在的警报
-            alertRepository.deleteAllById(existingIds);
-
             result.put("success", true);
-            result.put("message", "已成功删除 " + existingIds.size() + " 条警报");
+            result.put("message", "已成功删除 " + (alertIds.size() - failedIds.size()) + " 条警报");
+            result.put("deletedCount", deletedCount);
             result.put("failedIds", failedIds);
         } catch (Exception e) {
             result.put("success", false);
