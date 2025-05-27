@@ -1,6 +1,6 @@
 package com.example.software_management.Service;
 
-import com.example.software_management.Model.MModel;
+import com.example.software_management.Model.Model;
 import com.example.software_management.Model.User;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,8 +28,8 @@ public interface ModelService {
      * @return 创建的模型对象
      * @throws IOException 如果文件处理出错
      */
-    MModel createModel(MultipartFile file, String name, String style, String status,
-                       String description, User user) throws IOException;
+    Model createModel(MultipartFile file, String name, String style, String status,
+                      String description, User user) throws IOException;
 
     /**
      * 获取各模型风格的占比
@@ -48,7 +48,7 @@ public interface ModelService {
      * @param id 模型ID
      * @return 找到的模型对象
      */
-    Optional<MModel> getModelById(Integer id);
+    Optional<Model> getModelById(Integer id);
 
     /**
      * 删除指定ID的模型

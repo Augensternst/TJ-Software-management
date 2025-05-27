@@ -1,7 +1,6 @@
 package com.example.software_management.Controller;
 
 import com.example.software_management.Exception.ResourceNotFoundException;
-import com.example.software_management.Model.Prediction;
 import com.example.software_management.Model.User;
 import com.example.software_management.Security.UserSecurity;
 import com.example.software_management.Service.PredictionService;

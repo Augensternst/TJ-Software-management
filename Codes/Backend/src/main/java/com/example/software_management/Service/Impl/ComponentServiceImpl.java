@@ -2,7 +2,7 @@ package com.example.software_management.Service.Impl;
 
 import com.example.software_management.DTO.ComponentDTO;
 import com.example.software_management.Model.Component;
-import com.example.software_management.Model.MModel;
+import com.example.software_management.Model.Model;
 import com.example.software_management.Model.User;
 import com.example.software_management.Repository.ComponentRepository;
 import com.example.software_management.Repository.ModelRepository;
@@ -47,7 +47,7 @@ public class ComponentServiceImpl implements ComponentService {
 
         // 如果提供了模型ID，关联模型
         if (modelId != null) {
-            Optional<MModel> modelOpt = modelRepository.findById(modelId);
+            Optional<Model> modelOpt = modelRepository.findById(modelId);
             if (modelOpt.isEmpty()) {
                 throw new IllegalArgumentException("模型不存在");
             }

@@ -1,15 +1,9 @@
 package com.example.software_management.Controller;
 
-import com.example.software_management.Model.MModel;
+import com.example.software_management.Model.Model;
 import com.example.software_management.Model.User;
 import com.example.software_management.Security.UserSecurity;
 import com.example.software_management.Service.ModelService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.SchemaProperty;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -69,7 +63,7 @@ public class ModelController {
             UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
             User user = userSecurity.getUser();  // 直接获取 User 对象
 
-            MModel model = modelService.createModel(file, name, style, status, description, user);
+            Model model = modelService.createModel(file, name, style, status, description, user);
 
             // 不返回模型文件内容
             Map<String, Object> modelData = new HashMap<>();
@@ -135,10 +129,10 @@ public class ModelController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            Optional<MModel> modelOptional = modelService.getModelById(id);
+            Optional<Model> modelOptional = modelService.getModelById(id);
 
             if (modelOptional.isPresent()) {
-                MModel model = modelOptional.get();
+                Model model = modelOptional.get();
 
                 // 不返回模型文件内容
                 Map<String, Object> modelData = new HashMap<>();
@@ -205,10 +199,10 @@ public class ModelController {
     @GetMapping("/{id}/file/")
     public ResponseEntity<?> getModelFile(@PathVariable Integer id) {
         try {
-            Optional<MModel> modelOptional = modelService.getModelById(id);
+            Optional<Model> modelOptional = modelService.getModelById(id);
 
             if (modelOptional.isPresent()) {
-                MModel model = modelOptional.get();
+                Model model = modelOptional.get();
 
                 // 返回文件内容
                 return ResponseEntity.ok()

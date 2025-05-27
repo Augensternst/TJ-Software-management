@@ -1,36 +1,64 @@
 package com.example.software_management.Repository;
 
-import com.example.software_management.Model.MModel;
+import com.example.software_management.Model.Model;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Map;
 
 @Repository
-public interface ModelRepository extends JpaRepository<MModel, Integer> {
+public interface ModelRepository extends JpaRepository<Model, Integer> {
 
-    // 根据名称查找模型
+    /**
+     * 根据名称模糊查询模型
+     * @param searchQuery 搜索关键词
+     * @param pageable 分页参数
+     * @return 模型分页结果
+     */
+    @Query("SELECT m FROM Model m WHERE :searchQuery IS NULL OR m.name LIKE %:searchQuery%")
+    Page<Model> findModelsWithSearch(
+            @Param("searchQuery") String searchQuery,
+            Pageable pageable);
+
+    /**
+     * 根据名称查找模型
+     * @param name 模型名称
+     * @return 是否存在
+     */
     boolean existsByName(String name);
 
-    // 根据MD5值查找模型
-    boolean existsByMd5(String md5);
+    /**
+     * 根据类型查找模型
+     * @param type 模型类型
+     * @param pageable 分页参数
+     * @return 模型分页结果
+     */
+    Page<Model> findByType(String type, Pageable pageable);
 
-    // 查找所有模型的简要信息（不包括文件内容）
-    @Query("SELECT m.id as id, m.name as name, m.style as style, m.status as status, "
-            + "m.description as description, m.uploadedTime as uploadedTime, m.md5 as md5 "
-            + "FROM MModel m")
-    List<Map<String, Object>> findAllModelsWithoutFile();
+    /**
+     * 统计模型总数
+     * @return 模型总数
+     */
+    @Query("SELECT COUNT(m) FROM Model m")
+    long countModels();
 
-    // 获取所有风格
-    @Query("SELECT m.style FROM MModel m")
-    List<String> findAllStyles();
+    /**
+     * 获取所有模型类型
+     * @return 模型类型列表
+     */
+    @Query("SELECT DISTINCT m.type FROM Model m WHERE m.type IS NOT NULL")
+    List<String> findAllTypes();
 
-    // 获取所有状态
-    @Query("SELECT m.status FROM MModel m")
-    List<String> findAllStatuses();
-
-    // 根据用户名查询模型
-    List<MModel> findByUserUsername(String username);
+    /**
+     * 根据组件ID查询使用过的模型
+     * @param componentId 组件ID
+     * @return 模型列表
+     */
+    @Query("SELECT DISTINCT m FROM Model m JOIN Forecast f ON f.model = m " +
+            "WHERE f.component.id = :componentId")
+    List<Model> findModelsByComponentId(@Param("componentId") Integer componentId);
 }

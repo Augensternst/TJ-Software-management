@@ -1,50 +1,61 @@
-// ComponentDTO.java
 package com.example.software_management.DTO;
 
 import com.example.software_management.Model.Component;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ComponentDTO {
-    private Integer id;
+    private Integer deviceId;
     private String name;
+    private String picture;
     private Integer status;
-    private Integer lifeForecast;
-    private String location;
-    private LocalDateTime updatedTime;
-    private String description;
-    private Integer modelId;
-    private String modelName;
+    private LocalDateTime warningTime;
+
+    // Additional fields for detailed views
+    private Integer userId;
     private String username;
 
-    // 构造函数
-    public ComponentDTO() {
-    }
-
-    // 从 Component 实体转换为 DTO
+    // Constructor from Component entity
     public ComponentDTO(Component component) {
-        this.id = component.getId();
+        this.deviceId = component.getId();
         this.name = component.getName();
+        this.picture = component.getPic();
         this.status = component.getStatus();
-        this.lifeForecast = component.getLifeForecast();
-        this.location = component.getLocation();
-        this.updatedTime = component.getUpdatedTime();
-        this.description = component.getDescription();
-
-        // 处理关联实体，只获取必要的信息而不是整个对象
-        if (component.getModel() != null) {
-            this.modelId = component.getModel().getId();
-            this.modelName = component.getModel().getName();
-        }
+        this.warningTime = component.getWarningTime();
 
         if (component.getUser() != null) {
+            this.userId = component.getUser().getId();
             this.username = component.getUser().getUsername();
         }
+    }
 
+    // Simplified constructor for listing
+    public static ComponentDTO createSimplifiedDTO(Component component) {
+        return ComponentDTO.builder()
+                .deviceId(component.getId())
+                .name(component.getName())
+                .picture(component.getPic())
+                .status(component.getStatus())
+                .build();
+    }
 
+    // Constructor for defective devices
+    public static ComponentDTO createDefectiveDTO(Component component) {
+        return ComponentDTO.builder()
+                .deviceId(component.getId())
+                .name(component.getName())
+                .status(component.getStatus())
+                .warningTime(component.getWarningTime())
+                .build();
     }
 }

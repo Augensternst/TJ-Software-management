@@ -1,13 +1,11 @@
 package com.example.software_management.Controller;
 
-import com.example.software_management.DTO.DataDTO;
-import com.example.software_management.Model.DData;
+import com.example.software_management.Model.Data;
 import com.example.software_management.Model.User;
 import com.example.software_management.Security.UserSecurity;
 import com.example.software_management.Service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +45,7 @@ public class DataController {
             UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
             User currentUser=userSecurity.getUser();
 
-            DData data = dataService.createData(file, name, componentId, currentUser);
+            Data data = dataService.createData(file, name, componentId, currentUser);
 
             response.put("success", true);
             response.put("data", data.getId());
@@ -110,10 +108,10 @@ public class DataController {
             UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
             User currentUser=userSecurity.getUser();
 
-            Optional<DData> dataOpt = dataService.downloadData(id, currentUser);
+            Optional<Data> dataOpt = dataService.downloadData(id, currentUser);
 
             if (dataOpt.isPresent()) {
-                DData data = dataOpt.get();
+                Data data = dataOpt.get();
 
                 ByteArrayResource resource = new ByteArrayResource(data.getFile());
 

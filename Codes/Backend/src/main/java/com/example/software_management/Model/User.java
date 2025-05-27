@@ -15,13 +15,19 @@ import java.util.List;
 public class User {
 
     @Id
-    @Column(name = "username", length = 50, nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Integer id;
+
+    @Column(name = "username", length = 50, nullable = false, unique = true)
     @Size(max = 50)
+    @NotNull
     private String username;
 
     @Column(name = "hashed_password", length = 128, nullable = false)
     @Size(max = 128)
     @NotNull
+    @JsonIgnore
     private String hashedPassword;
 
     @Column(name = "phone", length = 50, nullable = false, unique = true)
@@ -29,22 +35,37 @@ public class User {
     @NotNull
     private String phone;
 
-    // 与MModel的一对多关系
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<MModel> models;
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "role", length = 20)
+    private String role = "USER";
 
     // 与Component的一对多关系
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Component> components;
 
-    // 在User类中添加
-    @OneToMany(mappedBy = "processedBy", cascade = CascadeType.ALL)
+    // 与Alert的一对多关系（用户确认的警报）
+    @OneToMany(mappedBy = "confirmedBy", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Alert> processedAlerts;
+    private List<Alert> confirmedAlerts;
 
-    @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<Prediction> createdPredictions;
+    /**
+     * 获取用户拥有的设备数量
+     * @return 设备数量
+     */
+    @Transient
+    public int getDeviceCount() {
+        return components != null ? components.size() : 0;
+    }
 
+    /**
+     * 获取用户的测点数量（设备数 × 8）
+     * @return 测点数量
+     */
+    @Transient
+    public int getDataPointCount() {
+        return getDeviceCount() * 8;
+    }
 }

@@ -13,82 +13,75 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface AlertRepository extends JpaRepository<Alert, Long> {
+public interface AlertRepository extends JpaRepository<Alert, Integer> {
 
     /**
-     * 根据多条件查询预警
-     * @param componentId 设备ID
-     * @param startTime 开始时间
-     * @param endTime 结束时间
-     * @param severity 严重性
-     * @param isProcessed 是否已处理
+     * 查询用户未确认的警报设备
+     * @param userId 用户ID
+     * @param deviceName 设备名称（可选，模糊匹配）
+     * @param startTime 开始时间（可选）
+     * @param endTime 结束时间（可选）
      * @param pageable 分页参数
-     * @return 预警分页结果
+     * @return 警报分页结果
      */
-    @Query("SELECT a FROM Alert a WHERE (:componentId IS NULL OR a.component.id = :componentId) " +
+    @Query("SELECT a FROM Alert a JOIN a.component c WHERE c.user.id = :userId " +
+            "AND a.isConfirmed = false " +
+            "AND (:deviceName IS NULL OR c.name LIKE %:deviceName%) " +
             "AND (:startTime IS NULL OR a.alertTime >= :startTime) " +
             "AND (:endTime IS NULL OR a.alertTime <= :endTime) " +
-            "AND (:severity IS NULL OR a.severity = :severity) " +
-            "AND (:isProcessed IS NULL OR a.isProcessed = :isProcessed) " +
             "ORDER BY a.alertTime DESC")
-    Page<Alert> findAlerts(
-            @Param("componentId") Integer componentId,
+    Page<Alert> findUnconfirmedAlerts(
+            @Param("userId") Integer userId,
+            @Param("deviceName") String deviceName,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime,
-            @Param("severity") Alert.Severity severity,
-            @Param("isProcessed") Boolean isProcessed,
             Pageable pageable);
 
     /**
-     * 批量更新预警为已处理状态
-     * @param alertIds 预警ID列表
-     * @param processedBy 处理人
-     * @param processedAt 处理时间
+     * 批量更新警报为已确认状态
+     * @param alertIds 警报ID列表
+     * @param confirmedBy 确认人
+     * @param confirmedTime 确认时间
      * @return 影响的行数
      */
     @Modifying
-    @Query("UPDATE Alert a SET a.isProcessed = true, a.processedBy.username = :processedBy, " +
-            "a.processedAt = :processedAt WHERE a.id IN :alertIds")
-    int batchProcessAlerts(
-            @Param("alertIds") List<Long> alertIds,
-            @Param("processedBy") String processedBy,
-            @Param("processedAt") LocalDateTime processedAt);
+    @Query("UPDATE Alert a SET a.isConfirmed = true, a.confirmedBy.id = :confirmedBy, " +
+            "a.confirmedTime = :confirmedTime WHERE a.id IN :alertIds")
+    int confirmAlerts(
+            @Param("alertIds") List<Integer> alertIds,
+            @Param("confirmedBy") Integer confirmedBy,
+            @Param("confirmedTime") LocalDateTime confirmedTime);
 
     /**
-     * 统计特定条件下的预警数量
-     * @param isProcessed 是否已处理
-     * @param severity 严重性
-     * @param startTime 开始时间
-     * @param endTime 结束时间
-     * @return 符合条件的预警数量
+     * 获取用户所有警报的状态分布
+     * @param userId 用户ID
+     * @return 各状态的警报数量
      */
-    @Query("SELECT COUNT(a) FROM Alert a WHERE (:isProcessed IS NULL OR a.isProcessed = :isProcessed) " +
-            "AND (:severity IS NULL OR a.severity = :severity) " +
-            "AND (:startTime IS NULL OR a.alertTime >= :startTime) " +
-            "AND (:endTime IS NULL OR a.alertTime <= :endTime)")
-    long countAlerts(
-            @Param("isProcessed") Boolean isProcessed,
-            @Param("severity") Alert.Severity severity,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime);
+    @Query("SELECT a.status as status, COUNT(a) as count FROM Alert a " +
+            "JOIN a.component c WHERE c.user.id = :userId " +
+            "GROUP BY a.status")
+    List<Object[]> getAlertStatusSummary(@Param("userId") Integer userId);
 
     /**
-     * 获取指定日期范围内每天的预警数量
-     * @param startDate 开始日期
-     * @param endDate 结束日期
-     * @param isProcessed 是否已处理
-     * @param severity 严重性
-     * @return 每天的预警数量
+     * 根据组件ID查找警报
+     * @param componentId 组件ID
+     * @return 警报列表
      */
-    @Query("SELECT FUNCTION('DATE', a.alertTime) as date, COUNT(a) as count FROM Alert a " +
-            "WHERE a.alertTime BETWEEN :startDate AND :endDate " +
-            "AND (:isProcessed IS NULL OR a.isProcessed = :isProcessed) " +
-            "AND (:severity IS NULL OR a.severity = :severity) " +
-            "GROUP BY FUNCTION('DATE', a.alertTime) " +
-            "ORDER BY FUNCTION('DATE', a.alertTime)")  // 改为按日期排序
-    List<Object[]> countDailyAlerts(
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
-            @Param("isProcessed") Boolean isProcessed,
-            @Param("severity") Alert.Severity severity);
+    List<Alert> findByComponentId(Integer componentId);
+
+    /**
+     * 根据组件ID和确认状态查找警报
+     * @param componentId 组件ID
+     * @param isConfirmed 是否已确认
+     * @return 警报列表
+     */
+    List<Alert> findByComponentIdAndIsConfirmed(Integer componentId, Boolean isConfirmed);
+
+    /**
+     * 统计用户未确认的警报数量
+     * @param userId 用户ID
+     * @return 未确认的警报数量
+     */
+    @Query("SELECT COUNT(a) FROM Alert a JOIN a.component c WHERE c.user.id = :userId AND a.isConfirmed = false")
+    long countUnconfirmedAlertsByUserId(@Param("userId") Integer userId);
 }

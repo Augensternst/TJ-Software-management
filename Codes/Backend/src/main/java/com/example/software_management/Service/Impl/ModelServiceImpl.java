@@ -1,6 +1,6 @@
 package com.example.software_management.Service.Impl;
 
-import com.example.software_management.Model.MModel;
+import com.example.software_management.Model.Model;
 import com.example.software_management.Model.User;
 import com.example.software_management.Repository.ModelRepository;
 import com.example.software_management.Service.ModelService;
@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -41,8 +39,8 @@ public class ModelServiceImpl implements ModelService {
 
     @Override
     @Transactional
-    public MModel createModel(MultipartFile file, String name, String style, String status,
-                              String description, User user) throws IOException {
+    public Model createModel(MultipartFile file, String name, String style, String status,
+                             String description, User user) throws IOException {
 
         System.out.println("here!!!!!!!!!!!!!");
         // 检查模型名是否重复
@@ -59,7 +57,7 @@ public class ModelServiceImpl implements ModelService {
         }
 
         // 创建模型对象
-        MModel model = new MModel();
+        Model model = new Model();
         model.setName(name);
         model.setStyle(style);
         model.setStatus(status);
@@ -69,7 +67,7 @@ public class ModelServiceImpl implements ModelService {
         model.setUser(user);
 
         // 保存模型到数据库
-        MModel savedModel = modelRepository.save(model);
+        Model savedModel = modelRepository.save(model);
 
         // 将模型文件保存到本地文件系统
         saveModelFile(fileContent, md5);
@@ -126,8 +124,8 @@ public class ModelServiceImpl implements ModelService {
     }
 
     @Override
-    public Optional<MModel> getModelById(Integer id) {
-        Optional<MModel> modelOpt = modelRepository.findById(id);
+    public Optional<Model> getModelById(Integer id) {
+        Optional<Model> modelOpt = modelRepository.findById(id);
 
         modelOpt.ifPresent(model -> {
             // 确保模型文件存在于本地文件系统中
@@ -150,10 +148,10 @@ public class ModelServiceImpl implements ModelService {
     @Override
     @Transactional
     public boolean deleteModel(Integer id, String username) {
-        Optional<MModel> modelOpt = modelRepository.findById(id);
+        Optional<Model> modelOpt = modelRepository.findById(id);
 
         if (modelOpt.isPresent()) {
-            MModel model = modelOpt.get();
+            Model model = modelOpt.get();
 
             // 检查用户权限
             if (model.getUser() != null && !model.getUser().getUsername().equals(username)) {

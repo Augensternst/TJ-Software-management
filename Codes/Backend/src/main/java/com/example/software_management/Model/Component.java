@@ -28,59 +28,61 @@ public class Component {
     @Column(name = "status")
     private Integer status;
 
-    @Column(name = "life_forecast", nullable = false)
-    @NotNull
-    private Integer lifeForecast = -1;
-
-    @Column(name = "location", length = 50, nullable = false)
-    @Size(max = 50)
-    @NotNull
-    private String location;
-
-    @Column(name = "updated_time", nullable = false)
-    @NotNull
-    private LocalDateTime updatedTime;
-
-    @Lob
     @Column(name = "pic")
-    private byte[] pic;
+    private String pic;
 
-    @Column(name = "description")
-    private String description;
+    @Column(name = "warning_time")
+    private LocalDateTime warningTime;
 
+    // 与Data的一对多关系
+    @OneToMany(mappedBy = "component", cascade = CascadeType.ALL)
+    private List<Data> dataList;
+
+    // 与User的多对一关系
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "model_id")
-    private MModel model;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_username", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @NotNull
     private User user;
 
-    // 与DData的一对多关系
-    @OneToMany(mappedBy = "component", cascade = CascadeType.ALL)
-    private List<DData> data;
-
-    @OneToMany(mappedBy = "component", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<Prediction> predictions;
-
-    // 设置更新时间的自动更新
-    @PrePersist
-    public void prePersist() {
-        if (this.updatedTime == null) {
-            this.updatedTime = LocalDateTime.now();
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedTime = LocalDateTime.now();
-    }
-
-
-    // alert 一对多关系
+    // 与Alert的一对多关系
     @OneToMany(mappedBy = "component", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Alert> alerts;
+
+    // 与Forecast的一对多关系
+    @OneToMany(mappedBy = "component", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Forecast> forecasts;
+
+    // 获取最新的健康指数
+    @Transient
+    public Double getHealthIndex() {
+        if (dataList == null || dataList.isEmpty()) {
+            return null;
+        }
+
+        // Logic to calculate health index based on the latest data
+        // This is a placeholder - implement your health index calculation here
+        return 85.0;
+    }
+
+    // 获取最新的能耗数据
+    @Transient
+    public Double getEnergyConsumption() {
+        if (dataList == null || dataList.isEmpty()) {
+            return null;
+        }
+
+        // Logic to calculate energy consumption based on the latest data
+        // This is a placeholder - implement your energy calculation here
+        return 12.5;
+    }
+
+    // 更新状态时自动设置警告时间
+    @PreUpdate
+    public void preUpdate() {
+        if (this.status != null && this.status != 1 && this.warningTime == null) {
+            this.warningTime = LocalDateTime.now();
+        }
+    }
 }

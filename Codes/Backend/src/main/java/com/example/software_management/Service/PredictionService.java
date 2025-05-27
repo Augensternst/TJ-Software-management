@@ -4,7 +4,6 @@
 
 package com.example.software_management.Service;
 
-import com.example.software_management.Model.Prediction;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface PredictionService {

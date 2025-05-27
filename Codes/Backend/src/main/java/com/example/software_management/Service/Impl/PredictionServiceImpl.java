@@ -6,12 +6,10 @@ package com.example.software_management.Service.Impl;
 
 import com.example.software_management.Exception.ResourceNotFoundException;
 import com.example.software_management.Model.Component;
-import com.example.software_management.Model.MModel;
-import com.example.software_management.Model.Prediction;
+import com.example.software_management.Model.Model;
 import com.example.software_management.Model.User;
 import com.example.software_management.Repository.ComponentRepository;
 import com.example.software_management.Repository.ModelRepository;
-import com.example.software_management.Repository.PredictionRepository;
 import com.example.software_management.Repository.UserRepository;
 import com.example.software_management.Service.PredictionService;
 import org.slf4j.Logger;
@@ -64,7 +62,7 @@ public class PredictionServiceImpl implements PredictionService {
 
         try {
             // 获取模型、设备和用户信息
-            MModel model = modelRepository.findById(modelId)
+            Model model = modelRepository.findById(modelId)
                     .orElseThrow(() -> {
                         logger.error("模型未找到: ID={}", modelId);
                         return new ResourceNotFoundException("模型未找到: ID=" + modelId);

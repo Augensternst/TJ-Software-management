@@ -2,7 +2,7 @@ package com.example.software_management.Service.Impl;
 
 import com.example.software_management.DTO.DataDTO;
 import com.example.software_management.Model.Component;
-import com.example.software_management.Model.DData;
+import com.example.software_management.Model.Data;
 import com.example.software_management.Model.User;
 import com.example.software_management.Repository.ComponentRepository;
 import com.example.software_management.Repository.DataRepository;
@@ -32,7 +32,7 @@ public class DataServiceImpl implements DataService {
 
     @Override
     @Transactional
-    public DData createData(MultipartFile file, String name, Integer componentId, User currentUser) throws IOException {
+    public Data createData(MultipartFile file, String name, Integer componentId, User currentUser) throws IOException {
         // 检查组件是否存在
         Optional<Component> componentOpt = componentRepository.findById(componentId);
         if (componentOpt.isEmpty()) {
@@ -47,7 +47,7 @@ public class DataServiceImpl implements DataService {
         }
 
         // 创建数据对象
-        DData data = new DData();
+        Data data = new Data();
         data.setFile(file.getBytes());
         data.setName(name);
         data.setComponent(component);
@@ -72,11 +72,11 @@ public class DataServiceImpl implements DataService {
         }
 
         // 获取组件下所有数据
-        List<DData> dataList = dataRepository.findByComponentId(componentId);
+        List<Data> dataList = dataRepository.findByComponentId(componentId);
         List<DataDTO> dataDTOList = new ArrayList<>();
 
         // 清除文件内容以减少传输大小
-        for (DData data : dataList) {
+        for (Data data : dataList) {
             dataDTOList.add(new DataDTO(data));
         }
 
@@ -84,14 +84,14 @@ public class DataServiceImpl implements DataService {
     }
 
     @Override
-    public Optional<DData> downloadData(Integer id, User currentUser) {
-        Optional<DData> dataOpt = dataRepository.findById(id);
+    public Optional<Data> downloadData(Integer id, User currentUser) {
+        Optional<Data> dataOpt = dataRepository.findById(id);
 
         if (dataOpt.isEmpty()) {
             return Optional.empty();
         }
 
-        DData data = dataOpt.get();
+        Data data = dataOpt.get();
 
         // 检查是否是当前用户的数据
         if (!data.getComponent().getUser().getUsername().equals(currentUser.getUsername())) {
@@ -109,13 +109,13 @@ public class DataServiceImpl implements DataService {
     @Override
     @Transactional
     public boolean deleteData(Integer id, User currentUser) {
-        Optional<DData> dataOpt = dataRepository.findById(id);
+        Optional<Data> dataOpt = dataRepository.findById(id);
 
         if (dataOpt.isEmpty()) {
             return false;
         }
 
-        DData data = dataOpt.get();
+        Data data = dataOpt.get();
 
         // 检查是否是当前用户的数据
         if (!data.getComponent().getUser().getUsername().equals(currentUser.getUsername())) {
