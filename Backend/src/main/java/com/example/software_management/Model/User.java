@@ -1,0 +1,52 @@
+package com.example.software_management.Model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import java.util.List;
+
+@Entity
+@Table(name = "user")
+@Getter
+@Setter
+public class User {
+
+    @Id
+    @Column(name = "username", length = 50, nullable = false)
+    @Size(max = 50)
+    private String username;
+
+    @Column(name = "hashed_password", length = 128, nullable = false)
+    @Size(max = 128)
+    @NotNull
+    private String hashedPassword;
+
+    @Column(name = "email", length = 50, nullable = false)
+    @Size(max = 50)
+    @NotNull
+    private String email;
+
+    @Column(name = "phone", length = 50, nullable = false)
+    @Size(max = 50)
+    @NotNull
+    private String phone;
+
+    @Column(name = "role", nullable = false)
+    @NotNull
+    private Integer role = 0;
+
+    @Lob
+    @Column(name = "avatar")
+    private byte[] avatar;
+
+    // 与MModel的一对多关系
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<MModel> models;
+
+    // 与Component的一对多关系
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Component> components;
+
+}
