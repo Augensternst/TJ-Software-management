@@ -1,56 +1,46 @@
 package com.example.software_management.Service;
 
 import com.example.software_management.DTO.DataDTO;
-import com.example.software_management.Model.Data;
-import com.example.software_management.Model.User;
-import org.springframework.web.multipart.MultipartFile;
+import com.example.software_management.DTO.ReportDTO;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 public interface DataService {
 
     /**
-     * 上传数据
-     * @param file 数据文件
-     * @param name 数据名称
-     * @param componentId 组件ID
-     * @param currentUser 当前用户
-     * @return 创建的数据对象
-     * @throws IOException 如果文件处理出错
+     * 获取设备健康数据（最近7天）
+     * @param deviceId 设备ID
+     * @return 健康数据列表
      */
-    Data createData(MultipartFile file, String name, Integer componentId, User currentUser) throws IOException;
+    List<Double> getDeviceHealthData(Integer deviceId);
 
     /**
-     * 获取用户组件下的所有数据
-     * @param componentId 组件ID
-     * @param currentUser 当前用户
-     * @return 数据列表（不包含文件内容）
+     * 获取设备能耗数据（最近7天）
+     * @param deviceId 设备ID
+     * @return 能耗数据列表和当日成本
      */
-    List<DataDTO> getUserComponentData(Integer componentId, User currentUser);
+    ReportDTO getDeviceEnergyData(Integer deviceId);
 
     /**
-     * 下载数据
-     * @param id 数据ID
-     * @param currentUser 当前用户
-     * @return 数据对象（包含文件内容）
+     * 获取设备指标卡片数据
+     * @param deviceId 设备ID
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return 指标卡片数据
      */
-    Optional<Data> downloadData(Integer id, User currentUser);
+    ReportDTO getDeviceMetricCards(Integer deviceId, int page, int pageSize);
 
     /**
-     * 获取当前用户的所有数据
-     * @param currentUser 当前用户
-     * @return 数据列表（Map形式，包含id、name、time、result、component_id和component_name）
+     * 获取设备的所有属性数据
+     * @param deviceId 设备ID
+     * @return 属性数据列表
      */
-    List<Map<String, Object>> getAllUserData(User currentUser);
+    List<DataDTO> getDeviceAttributes(Integer deviceId);
 
     /**
-     * 删除数据
-     * @param id 数据ID
-     * @param currentUser 当前用户
-     * @return 如果删除成功返回true，否则返回false
+     * 获取设备的整体健康指数
+     * @param deviceId 设备ID
+     * @return 健康指数（0-100）
      */
-    boolean deleteData(Integer id, User currentUser);
+    Double getDeviceOverallHealth(Integer deviceId);
 }

@@ -1,27 +1,18 @@
 package com.example.software_management.Controller;
 
-import com.example.software_management.Model.Data;
-import com.example.software_management.Model.User;
-import com.example.software_management.Security.UserSecurity;
+import com.example.software_management.DTO.DataDTO;
+import com.example.software_management.DTO.ReportDTO;
 import com.example.software_management.Service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
-@RequestMapping("/data")
+@RequestMapping("/api/data")
 public class DataController {
 
     private final DataService dataService;
@@ -31,170 +22,91 @@ public class DataController {
         this.dataService = dataService;
     }
 
-    @PostMapping(value = "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Map<String, Object> createData(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("name") String name,
-            @RequestParam("component") Integer componentId) {
+    /**
+     * 2.1 获取设备健康数据
+     * @param deviceId 设备ID
+     * @return 健康数据列表
+     */
+    @GetMapping("/monitor/{deviceId}/health")
+    public ResponseEntity<Map<String, Object>> getDeviceHealthData(@PathVariable Integer deviceId) {
+        List<Double> healthData = dataService.getDeviceHealthData(deviceId);
 
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("values", healthData);
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
-
-            Data data = dataService.createData(file, name, componentId, currentUser);
-
-            response.put("success", true);
-            response.put("data", data.getId());
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("code", 104);
-            response.put("message", e.getMessage());
-        } catch (SecurityException e) {
-            response.put("success", false);
-            response.put("code", 124);
-            response.put("message", e.getMessage());
-        } catch (IOException e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "文件处理错误: " + e.getMessage());
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "上传数据失败: " + e.getMessage());
-        }
-
-        return response;
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/user_component/{id}/")
-    public Object getUserComponentData(@PathVariable Integer id) {
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
+    /**
+     * 2.2 获取设备能耗数据
+     * @param deviceId 设备ID
+     * @return 能耗数据列表和当日成本
+     */
+    @GetMapping("/monitor/{deviceId}/energy")
+    public ResponseEntity<Map<String, Object>> getDeviceEnergyData(@PathVariable Integer deviceId) {
+        ReportDTO energyData = dataService.getDeviceEnergyData(deviceId);
 
-            return dataService.getUserComponentData(id, currentUser);
-        } catch (IllegalArgumentException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 104);
-            response.put("message", e.getMessage());
-            return response;
-        } catch (SecurityException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 124);
-            response.put("message", e.getMessage());
-            return response;
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "获取组件数据失败: " + e.getMessage());
-            return response;
-        }
-    }
-
-    @GetMapping("/download/{id}/")
-    public ResponseEntity<?> downloadData(@PathVariable Integer id) {
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
-
-            Optional<Data> dataOpt = dataService.downloadData(id, currentUser);
-
-            if (dataOpt.isPresent()) {
-                Data data = dataOpt.get();
-
-                ByteArrayResource resource = new ByteArrayResource(data.getFile());
-
-                return ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + data.getName())
-                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                        .contentLength(data.getFile().length)
-                        .body(resource);
-            } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("code", 105);
-                response.put("message", "数据不存在");
-                return ResponseEntity.badRequest().body(response);
-            }
-        } catch (SecurityException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 125);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "下载数据失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    @GetMapping("/all_user/")
-    public Map<String, Object> getAllUserData() {
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("values", energyData.getValues());
+        response.put("energyCost", energyData.getEnergyCost());
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
-
-            List<Map<String, Object>> datas = dataService.getAllUserData(currentUser);
-
-            response.put("success", true);
-            response.put("data", datas);
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "获取用户数据失败: " + e.getMessage());
-        }
-
-        return response;
+        return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}/")
-    public Map<String, Object> deleteData(@PathVariable Integer id) {
+    /**
+     * 2.3 获取设备指标卡片数据
+     * @param deviceId 设备ID
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return 指标卡片数据
+     */
+    @GetMapping("/monitor/{deviceId}/cards")
+    public ResponseEntity<Map<String, Object>> getDeviceMetricCards(
+            @PathVariable Integer deviceId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "4") int pageSize) {
+
+        ReportDTO metricCards = dataService.getDeviceMetricCards(deviceId, page, pageSize);
+
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("items", metricCards.getItems());
+        response.put("totalPages", metricCards.getTotalPages());
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
+        return ResponseEntity.ok(response);
+    }
 
-            boolean deleted = dataService.deleteData(id, currentUser);
+    /**
+     * 获取设备属性数据
+     * @param deviceId 设备ID
+     * @return 属性数据列表
+     */
+    @GetMapping("/monitor/{deviceId}/attributes")
+    public ResponseEntity<Map<String, Object>> getDeviceAttributes(@PathVariable Integer deviceId) {
+        List<DataDTO> attributes = dataService.getDeviceAttributes(deviceId);
 
-            if (deleted) {
-                response.put("success", true);
-                response.put("data", "删除成功");
-            } else {
-                response.put("success", false);
-                response.put("code", 500);
-                response.put("message", "删除失败");
-            }
-        } catch (SecurityException e) {
-            response.put("success", false);
-            response.put("code", 125);
-            response.put("message", e.getMessage());
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "删除数据失败: " + e.getMessage());
-        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("attributes", attributes);
 
-        return response;
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取设备整体健康指数
+     * @param deviceId 设备ID
+     * @return 健康指数
+     */
+    @GetMapping("/monitor/{deviceId}/overall-health")
+    public ResponseEntity<Map<String, Object>> getDeviceOverallHealth(@PathVariable Integer deviceId) {
+        Double healthIndex = dataService.getDeviceOverallHealth(deviceId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("healthIndex", healthIndex != null ? healthIndex : 0);
+
+        return ResponseEntity.ok(response);
     }
 }

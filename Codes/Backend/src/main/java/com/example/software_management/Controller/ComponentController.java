@@ -1,27 +1,19 @@
 package com.example.software_management.Controller;
 
 import com.example.software_management.DTO.ComponentDTO;
-import com.example.software_management.Model.Component;
-import com.example.software_management.Model.User;
-import com.example.software_management.Security.UserSecurity;
+import com.example.software_management.DTO.ReportDTO;
 import com.example.software_management.Service.ComponentService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/component")
+@RequestMapping("/api/components")
 public class ComponentController {
 
     private final ComponentService componentService;
@@ -31,176 +23,150 @@ public class ComponentController {
         this.componentService = componentService;
     }
 
-    @PostMapping(value = "/upload/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Map<String, Object> uploadComponent(
-            @RequestParam("pic") MultipartFile pic,
-            @RequestParam("name") String name,
-            @RequestParam("location") String location,
-            @RequestParam(value = "model", required = false) Integer modelId,
-            @RequestParam(value = "description", required = false) String description) {
+    /**
+     * 获取当前用户拥有的设备数
+     * @param userId 用户ID
+     * @return 设备数量
+     */
+    @GetMapping("/user/devices/count")
+    public ResponseEntity<Map<String, Object>> getUserDeviceCount(@RequestAttribute("userId") Integer userId) {
+        long deviceCount = componentService.getUserDeviceCount(userId);
 
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("deviceCount", deviceCount);
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
-
-            ComponentDTO component = componentService.uploadComponent(pic, name, location, modelId, description, currentUser);
-
-            response.put("success", true);
-            response.put("data", component);
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("code", e.getMessage().contains("组件名已存在") ? 110 : 103);
-            response.put("message", e.getMessage());
-        } catch (IOException e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "文件处理错误: " + e.getMessage());
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "上传组件失败: " + e.getMessage());
-        }
-
-        return response;
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/all_user/")
-    public Map<String, Object> getUserComponents() {
+    /**
+     * 获取当前用户的所有设备列表
+     * @param userId 用户ID
+     * @param searchQuery 搜索关键词
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return 设备列表和分页信息
+     */
+    @GetMapping("/user/devices")
+    public ResponseEntity<Map<String, Object>> getUserDevices(
+            @RequestAttribute("userId") Integer userId,
+            @RequestParam(required = false) String searchQuery,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+
+        Page<ComponentDTO> devicePage = componentService.getUserDevices(userId, searchQuery, page, pageSize);
+
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("devices", devicePage.getContent());
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
+        Map<String, Object> pagination = new HashMap<>();
+        pagination.put("total", devicePage.getTotalElements());
+        pagination.put("page", page);
+        pagination.put("pageSize", pageSize);
+        pagination.put("totalPages", devicePage.getTotalPages());
 
-            List<Map<String, Object>> components = componentService.getUserComponents(currentUser);
+        response.put("pagination", pagination);
 
-            response.put("success", true);
-            response.put("data", components);
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "获取组件列表失败: " + e.getMessage());
-        }
-
-        return response;
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/model_count/")
-    public Map<String, Object> getModelCount() {
+    /**
+     * 获取用户所有设备的状态分布
+     * @param userId 用户ID
+     * @return 状态分布列表
+     */
+    @GetMapping("/user/devices/status-summary")
+    public ResponseEntity<Map<String, Object>> getUserDeviceStatusSummary(@RequestAttribute("userId") Integer userId) {
+        List<Map<String, Object>> statusSummary = componentService.getUserDeviceStatusSummary(userId);
+
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("statusSummary", statusSummary);
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
-
-            Map<String, Integer> modelCount = componentService.getModelCount(currentUser);
-
-            response.put("success", true);
-            response.put("data", modelCount);
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "获取模型组件数量统计失败: " + e.getMessage());
-        }
-
-        return response;
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/location_count/")
-    public Map<String, Object> getLocationCount() {
+    /**
+     * 获取当前用户所有有缺陷的设备（状态 ≠ 1）
+     * @param userId 用户ID
+     * @return 有缺陷的设备列表
+     */
+    @GetMapping("/user/devices/defective")
+    public ResponseEntity<Map<String, Object>> getUserDefectiveDevices(@RequestAttribute("userId") Integer userId) {
+        List<ComponentDTO> defectiveDevices = componentService.getUserDefectiveDevices(userId);
+
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("devices", defectiveDevices);
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
-
-            Map<String, Integer> locationCount = componentService.getLocationCount(currentUser);
-
-            response.put("success", true);
-            response.put("data", locationCount);
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "获取位置组件数量统计失败: " + e.getMessage());
-        }
-
-        return response;
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/pic/{id}/")
-    public ResponseEntity<?> getComponentPic(@PathVariable Integer id) {
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
+    /**
+     * 获取设备健康数据（最近7天）
+     * @param deviceId 设备ID
+     * @return 健康数据列表
+     */
+    @GetMapping("/monitor/{deviceId}/health")
+    public ResponseEntity<Map<String, Object>> getDeviceHealthData(@PathVariable Integer deviceId) {
+        List<Double> healthData = componentService.getDeviceHealthData(deviceId);
 
-            byte[] pic = componentService.getComponentPic(id, currentUser);
-
-            return ResponseEntity.ok()
-                    .contentType(MediaType.IMAGE_PNG)
-                    .body(pic);
-        } catch (SecurityException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 124);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        } catch (IllegalArgumentException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 104);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "获取组件图片失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    @DeleteMapping("/delete/{id}/")
-    public Map<String, Object> deleteComponent(@PathVariable Integer id) {
         Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("values", healthData);
 
-        try {
-            // 获取当前登录用户
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
-            User currentUser=userSecurity.getUser();
+        return ResponseEntity.ok(response);
+    }
 
-            boolean deleted = componentService.deleteComponent(id, currentUser);
+    /**
+     * 获取设备能耗数据（最近7天）
+     * @param deviceId 设备ID
+     * @return 能耗数据列表和总成本
+     */
+    @GetMapping("/monitor/{deviceId}/energy")
+    public ResponseEntity<Map<String, Object>> getDeviceEnergyData(@PathVariable Integer deviceId) {
+        ReportDTO energyData = componentService.getDeviceEnergyData(deviceId);
 
-            if (deleted) {
-                response.put("success", true);
-                response.put("data", "删除成功");
-            } else {
-                response.put("success", false);
-                response.put("code", 104);
-                response.put("message", "组件不存在");
-            }
-        } catch (SecurityException e) {
-            response.put("success", false);
-            response.put("code", 124);
-            response.put("message", e.getMessage());
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("code", 500);
-            response.put("message", "删除组件失败: " + e.getMessage());
-        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("values", energyData.getValues());
+        response.put("energyCost", energyData.getEnergyCost());
 
-        return response;
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取设备指标卡片数据
+     * @param deviceId 设备ID
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return 指标卡片数据
+     */
+    @GetMapping("/monitor/{deviceId}/cards")
+    public ResponseEntity<Map<String, Object>> getDeviceMetricCards(
+            @PathVariable Integer deviceId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+
+        ReportDTO metricCards = componentService.getDeviceMetricCards(deviceId, page, pageSize);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("items", metricCards.getItems());
+        response.put("totalPages", metricCards.getTotalPages());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取预警状态分布（复用设备状态分布接口）
+     * @param userId 用户ID
+     * @return 状态分布列表
+     */
+    @GetMapping("/alerts/status-summary")
+    public ResponseEntity<Map<String, Object>> getAlertStatusSummary(@RequestAttribute("userId") Integer userId) {
+        // 直接复用设备状态分布接口
+        return getUserDeviceStatusSummary(userId);
     }
 }

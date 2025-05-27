@@ -1,65 +1,72 @@
 package com.example.software_management.Service;
 
 import com.example.software_management.DTO.ComponentDTO;
-import com.example.software_management.Model.Component;
-import com.example.software_management.Model.User;
-import org.springframework.web.multipart.MultipartFile;
+import com.example.software_management.DTO.ReportDTO;
+import org.springframework.data.domain.Page;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public interface ComponentService {
 
     /**
-     * 上传组件
-     * @param pic 组件图片
-     * @param name 组件名称
-     * @param location 组件位置
-     * @param modelId 模型ID（可以为null）
-     * @param description 描述（可以为null）
-     * @param currentUser 当前用户
-     * @return 创建的组件对象
-     * @throws IOException 如果文件处理出错
+     * 获取当前用户拥有的设备数
+     * @param userId 用户ID
+     * @return 设备数量
      */
-    ComponentDTO uploadComponent(MultipartFile pic, String name, String location,
-                                 Integer modelId, String description, User currentUser) throws IOException;
+    long getUserDeviceCount(Integer userId);
 
     /**
-     * 获取用户的所有组件
-     * @param currentUser 当前用户
-     * @return 组件信息列表
+     * 获取当前用户的测点数（=设备数 × 8）
+     * @param userId 用户ID
+     * @return 测点数量
      */
-    List<Map<String, Object>> getUserComponents(User currentUser);
+    long getUserDataPointCount(Integer userId);
 
     /**
-     * 获取用户各模型的组件数量
-     * @param currentUser 当前用户
-     * @return 模型名称和组件数量的映射
+     * 获取当前用户的所有设备列表
+     * @param userId 用户ID
+     * @param searchQuery 搜索关键词
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return 设备列表和分页信息
      */
-    Map<String, Integer> getModelCount(User currentUser);
+    Page<ComponentDTO> getUserDevices(Integer userId, String searchQuery, int page, int pageSize);
 
     /**
-     * 获取用户各位置的组件数量
-     * @param currentUser 当前用户
-     * @return 位置和组件数量的映射
+     * 获取用户所有设备的状态分布
+     * @param userId 用户ID
+     * @return 状态分布列表
      */
-    Map<String, Integer> getLocationCount(User currentUser);
+    List<Map<String, Object>> getUserDeviceStatusSummary(Integer userId);
 
     /**
-     * 获取组件图片
-     * @param id 组件ID
-     * @param currentUser 当前用户
-     * @return 组件图片的字节数组
+     * 获取当前用户所有有缺陷的设备（状态 ≠ 1）
+     * @param userId 用户ID
+     * @return 有缺陷的设备列表
      */
-    byte[] getComponentPic(Integer id, User currentUser);
+    List<ComponentDTO> getUserDefectiveDevices(Integer userId);
 
     /**
-     * 删除组件
-     * @param id 组件ID
-     * @param currentUser 当前用户
-     * @return 如果删除成功返回true，否则返回false
+     * 获取设备健康数据（最近7天）
+     * @param deviceId 设备ID
+     * @return 健康数据列表
      */
-    boolean deleteComponent(Integer id, User currentUser);
+    List<Double> getDeviceHealthData(Integer deviceId);
+
+    /**
+     * 获取设备能耗数据（最近7天）
+     * @param deviceId 设备ID
+     * @return 能耗数据列表和总成本
+     */
+    ReportDTO getDeviceEnergyData(Integer deviceId);
+
+    /**
+     * 获取设备指标卡片数据
+     * @param deviceId 设备ID
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return 指标卡片数据
+     */
+    ReportDTO getDeviceMetricCards(Integer deviceId, int page, int pageSize);
 }

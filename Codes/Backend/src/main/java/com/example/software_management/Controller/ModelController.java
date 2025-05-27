@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/model")
+@RequestMapping("/api/model")
 public class ModelController {
 
     private final ModelService modelService;
