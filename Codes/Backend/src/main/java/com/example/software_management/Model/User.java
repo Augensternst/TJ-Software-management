@@ -24,23 +24,10 @@ public class User {
     @NotNull
     private String hashedPassword;
 
-    @Column(name = "email", length = 50, nullable = false)
-    @Size(max = 50)
-    @NotNull
-    private String email;
-
-    @Column(name = "phone", length = 50, nullable = false)
+    @Column(name = "phone", length = 50, nullable = false, unique = true)
     @Size(max = 50)
     @NotNull
     private String phone;
-
-    @Column(name = "role", nullable = false)
-    @NotNull
-    private Integer role = 0;
-
-    @Lob
-    @Column(name = "avatar")
-    private byte[] avatar;
 
     // 与MModel的一对多关系
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
