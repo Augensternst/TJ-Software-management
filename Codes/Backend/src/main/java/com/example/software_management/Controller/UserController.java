@@ -46,11 +46,10 @@ public class UserController {
     public ResponseEntity<Map<String, String>> register(@RequestParam Map<String, String> map) {
         String username = map.get("username");
         String password = map.get("password");
-        String confirmedPassword = map.get("confirmedPassword");
         String phone = map.get("phone");
 
         try {
-            Map<String, String> response = userService.register(username, password, confirmedPassword, phone);
+            Map<String, String> response = userService.register(username, password, phone);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, String> errorResponse = new HashMap<>();

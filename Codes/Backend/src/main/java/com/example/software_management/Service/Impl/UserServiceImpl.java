@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Map<String, String> register(String username, String password, String confirmedPassword, String phone) throws Exception {
+    public Map<String, String> register(String username, String password, String phone) throws Exception {
         // 实现用户注册的逻辑
         Map<String, String> response = new HashMap<>();
 
@@ -93,11 +93,6 @@ public class UserServiceImpl implements UserService {
         // 检查手机号是否已存在
         if (userRepository.existsByPhone(phone)) {
             throw new Exception("手机号已被注册");
-        }
-
-        // 检查两次输入的密码是否一致
-        if (!password.equals(confirmedPassword)) {
-            throw new Exception("两次输入的密码不一致");
         }
 
         // 创建新用户

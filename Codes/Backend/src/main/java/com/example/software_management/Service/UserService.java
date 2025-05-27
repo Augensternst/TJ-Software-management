@@ -5,5 +5,5 @@ import java.util.Map;
 public interface UserService {
     Map<String, String> getInfo();
     Map<String, String> getToken(String username, String password) throws Exception;
-    Map<String, String> register(String username, String password, String confirmedPassword, String phone) throws Exception;
+    Map<String, String> register(String username, String password, String phone) throws Exception;
 }
