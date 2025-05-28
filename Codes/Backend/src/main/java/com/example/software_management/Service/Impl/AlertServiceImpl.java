@@ -9,9 +9,12 @@ import com.example.software_management.Repository.AlertRepository;
 import com.example.software_management.Repository.DataRepository;
 import com.example.software_management.Repository.UserRepository;
 import com.example.software_management.Service.AlertService;
+import com.example.software_management.Redis.RedisUtil;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -33,15 +36,18 @@ public class AlertServiceImpl implements AlertService {
     private final AlertRepository alertRepository;
     private final UserRepository userRepository;
     private final DataRepository dataRepository;
+    private final RedisUtil redisUtil;
 
     @Autowired
     public AlertServiceImpl(
             AlertRepository alertRepository,
             UserRepository userRepository,
-            DataRepository dataRepository) {
+            DataRepository dataRepository,
+            RedisUtil redisUtil) {
         this.alertRepository = alertRepository;
         this.userRepository = userRepository;
         this.dataRepository = dataRepository;
+        this.redisUtil = redisUtil;
     }
 
     @Override
@@ -52,6 +58,19 @@ public class AlertServiceImpl implements AlertService {
             String endTime,
             int page,
             int pageSize) {
+
+        // 构建缓存键，包含所有查询参数以确保唯一性
+        String cacheKey = "alerts:unconfirmed:" + userId + ":"
+                + (deviceName != null ? deviceName : "null") + ":"
+                + (startTime != null ? startTime : "null") + ":"
+                + (endTime != null ? endTime : "null") + ":"
+                + page + ":" + pageSize;
+
+        // 尝试从缓存获取
+        Object cachedResult = redisUtil.get(cacheKey);
+        if (cachedResult != null) {
+            return (Page<AlertDTO>) cachedResult;
+        }
 
         // 处理可选的时间参数
         LocalDateTime startDateTime = null;
@@ -92,11 +111,17 @@ public class AlertServiceImpl implements AlertService {
                 })
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(alertDTOs, pageable, alertPage.getTotalElements());
+        PageImpl<AlertDTO> result = new PageImpl<>(alertDTOs, pageable, alertPage.getTotalElements());
+
+        // 将结果放入缓存，设置2分钟过期（警报数据较为实时，缓存时间不宜过长）
+        redisUtil.set(cacheKey, result, 120);
+
+        return result;
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = {"alertStatusSummary"}, allEntries = true)
     public Map<String, Object> confirmAlerts(List<Integer> alertIds, Integer userId) {
         Map<String, Object> result = new HashMap<>();
         List<Integer> failedIds = new ArrayList<>();
@@ -131,6 +156,10 @@ public class AlertServiceImpl implements AlertService {
             result.put("success", true);
             result.put("message", "已成功确认 " + updatedCount + " 条警报");
             result.put("failedIds", failedIds);
+
+            // 清除相关缓存
+            clearAlertCaches(userId);
+
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "确认警报失败: " + e.getMessage());
@@ -142,12 +171,19 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"alertStatusSummary"}, allEntries = true)
     public Map<String, Object> deleteAlerts(List<Integer> alertIds) {
         // todo:检查哪些id不存在 把不存在的id也加入到failed中
         Map<String, Object> result = new HashMap<>();
         List<Integer> failedIds = new ArrayList<>();
 
         try {
+            // 在删除前获取这些警报，以便我们知道哪些用户的缓存需要清除
+            List<Alert> alertsToDelete = alertRepository.findAllById(alertIds);
+            Set<Integer> userIds = alertsToDelete.stream()
+                    .map(alert -> alert.getComponent().getUser().getId())
+                    .collect(Collectors.toSet());
+
             // 直接尝试删除，捕获不存在的ID
             int deletedCount = alertRepository.deleteByIdIn(alertIds);
 
@@ -161,6 +197,12 @@ public class AlertServiceImpl implements AlertService {
             result.put("message", "已成功删除 " + (alertIds.size() - failedIds.size()) + " 条警报");
             result.put("deletedCount", deletedCount);
             result.put("failedIds", failedIds);
+
+            // 清除相关用户的所有警报相关缓存
+            for (Integer userId : userIds) {
+                clearAlertCaches(userId);
+            }
+
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "删除警报失败: " + e.getMessage());
@@ -248,6 +290,7 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
+    @Cacheable(value = "alertStatusSummary", key = "#userId")
     public List<Map<String, Object>> getAlertStatusSummary(Integer userId) {
         List<Object[]> statusSummary = alertRepository.getAlertStatusSummary(userId);
 
@@ -278,5 +321,21 @@ public class AlertServiceImpl implements AlertService {
         } else {
             cell.setCellValue("N/A");
         }
+    }
+
+    /**
+     * 清除用户相关的警报缓存
+     * @param userId 用户ID
+     */
+    private void clearAlertCaches(Integer userId) {
+        // 删除最常用的查询组合
+        redisUtil.del("alerts:unconfirmed:" + userId + ":null:null:null:1:10");
+
+        // 删除状态摘要缓存
+        redisUtil.del("alertStatusSummary::" + userId);
+
+        // 如果在Controller层有缓存，也需要清除
+        redisUtil.del("api:alerts:count:" + userId);
+        redisUtil.del("api:alerts:summary:" + userId);
     }
 }

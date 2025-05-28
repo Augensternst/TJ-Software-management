@@ -4,13 +4,15 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "alert")
 @Getter
 @Setter
-public class Alert {
+public class Alert implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public enum Status {
         NORMAL(1),     // 正常
