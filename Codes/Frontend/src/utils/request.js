@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const request = axios.create({
-  baseURL: 'http://localhost:8080', // 统一接口前缀,即后端端口
+  baseURL: 'http://localhost:8081', // 统一接口前缀,即后端端口
   timeout: 5000
 });
 

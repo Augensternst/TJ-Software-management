@@ -7,7 +7,7 @@
           <div class="device-name">
             {{deviceName}}
           </div>
-          <img src="@/assets/MonitorCenter/ex/ex.png" alt="设备图片" class="device-image">
+          <img :src="deviceImage" alt="设备图片" class="device-image">
           </div>
 
       </div>
@@ -52,7 +52,6 @@
               <div class="health-chart-container">
                 <canvas :ref="el => setHealthChartRef(el, item.health)" class="health-chart"></canvas>
               </div>
-
             </div>
           </div>
         </div>
@@ -72,8 +71,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { drawChart } from '@/utils/drawChart'; // 引入绘制图表的脚本
 import { drawHealthChart } from "@/utils/drawHealthChart";
-import { getDeviceHealthData, getDeviceCards,getDeviceEnergyData } from '@/api/monitorCenterApi'; // 引入 API
-import {useRoute} from 'vue-router'
+import { getDeviceHealthData, getDeviceEnergyData, getDeviceMetricCards, getDeviceById } from '@/api/monitorCenterApi'; // 修改为正确的导入
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'MoniterCenter',
@@ -84,13 +83,13 @@ export default {
 
     //获取设备信息
     const route = useRoute()
-    const deviceId = route.params.deviceId 
+    const deviceId = route.params.deviceId
     console.log('当前设备ID:', deviceId)
-    const deviceName="航空发动机";
+    const deviceName = ref("航空发动机"); // 改为ref，方便后续异步更新
+    const deviceImage = ref(""); // 改为ref
 
-    //我先写一个固定的路径作为测试
-    const deviceImage="https://th.bing.com/th/id/R.2ebb8ffe68330ef908e8ea7c4c2a07a4?rik=TaUqyM%2fIxuwQHw&riu=http%3a%2f%2fseopic.699pic.com%2fphoto%2f50074%2f0846.jpg_wh1200.jpg&ehk=81hwWiRmIMOb1fpXsrnEAkdli6qYEKuC6mdkpU3m56M%3d&risl=&pid=ImgRaw&r=0";
-    const energyCost=ref(48170);
+    //默认能耗成本
+    const energyCost = ref(48170);
 
     // 图表数据
     const healthyData = ref({
@@ -146,8 +145,7 @@ export default {
       if (currentPage.value > 1) {
         currentPage.value--;
         clearHealthCharts();
-        const cardsResponse = await getDeviceCards(deviceId, currentPage.value, itemsPerPage);
-        items.value = cardsResponse.items; // 更新当前页数据
+        await fetchCardData();
       }
     };
 
@@ -155,8 +153,20 @@ export default {
       if (currentPage.value < totalPages.value) {
         currentPage.value++;
         clearHealthCharts();
-        const cardsResponse = await getDeviceCards(deviceId, currentPage.value, itemsPerPage);
-        items.value = cardsResponse.items; // 更新当前页数据
+        await fetchCardData();
+      }
+    };
+
+    // 获取卡片数据的方法
+    const fetchCardData = async () => {
+      try {
+        const response = await getDeviceMetricCards(deviceId, currentPage.value, itemsPerPage);
+        if (response.data.success) {
+          items.value = response.data.items;
+          totalPages.value = response.data.totalPages;
+        }
+      } catch (error) {
+        console.error('获取设备指标卡片数据失败:', error);
       }
     };
 
@@ -165,7 +175,6 @@ export default {
         if(health>=0){
           drawHealthChart(el, health);
         }
-
       }
     };
 
@@ -181,37 +190,46 @@ export default {
     // 在组件挂载后获取数据并绘制图表
     onMounted(async () => {
       try {
-        // 绘制图表
-        if (healthyCanvas.value) {
-          console.log("绘制");
-          drawChart(healthyCanvas.value, healthyData.value);
-        }
-        if (energyCanvas.value) {
-          drawChart(energyCanvas.value, energyData.value);
-        }  //先做个样式，后面再移到后面
+        // 获取设备基本信息
+        const deviceInfo = await getDeviceById(deviceId);
 
+        if (deviceInfo.data.success) {
+          deviceName.value = deviceInfo.data.deviceName;
+          deviceImage.value = deviceInfo.data.picture;
+        }
+        else {
+          console.log('设备信息获取失败:', deviceInfo);
+        }
 
         // 获取健康数据
-        const healthData = await getDeviceHealthData(deviceId);
-        healthyData.value.labels = healthData.labels;
-        healthyData.value.datasets[0].data = healthData.values;
+        const healthResponse = await getDeviceHealthData(deviceId);
+        if (healthResponse.data.success) {
+          // 使用最近7天数据，只取值，标签用1-7
+          healthyData.value.datasets[0].data = healthResponse.data.values;
+
+          // 如果需要绘制图表
+          if (healthyCanvas.value) {
+            drawChart(healthyCanvas.value, healthyData.value);
+          }
+        }
 
         // 获取能耗数据
-        const energyDataResponse = await getDeviceEnergyData(deviceId);
-        energyData.value.labels = energyDataResponse.labels;
-        energyData.value.datasets[0].data = energyDataResponse.values;
-        energyCost.value = energyDataResponse.energyCost;
+        const energyResponse = await getDeviceEnergyData(deviceId);
+        if (energyResponse.data.success) {
+          energyData.value.datasets[0].data = energyResponse.data.values;
+          energyCost.value = energyResponse.data.energyCost;
+
+          // 如果需要绘制图表
+          if (energyCanvas.value) {
+            drawChart(energyCanvas.value, energyData.value);
+          }
+        }
 
         // 获取卡片信息
-        const cardsData = await getDeviceCards(deviceId, currentPage.value, itemsPerPage);
-        items.value = cardsData.items;
-        totalPages.value=cardsData.totalPages;
-
-
-
+        await fetchCardData();
 
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('获取设备数据失败:', error);
       }
     });
 

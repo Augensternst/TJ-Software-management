@@ -1,97 +1,69 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'https://your-api-endpoint.com/api';
+import request from '@/utils/request';
 
 /**
- * 获取模型列表（支持分页和模糊搜索）
+ * 获取模型列表
  * @param {number} page - 当前页码
- * @param {number} pageSize - 每页大小
- * @param {string} searchQuery - 搜索关键字
- * @returns {Promise<{ models: { id: number, name: string }[], total: number }>}
+ * @param {number} pageSize - 每页数量
+ * @param {string} [searchQuery] - 搜索关键词(可选)
+ * @returns {Promise} 包含模型列表的Promise
  */
-export const getModels = async (page = 1, pageSize = 10, searchQuery = '') => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/models`, {
-      params: {
-        page,
-        pageSize,
-        searchQuery,
-      },
-    });
-    return {
-      models: response.data.models,
-      total: response.data.total,
-    };
-  } catch (error) {
-    console.error('Error fetching models:', error);
-    throw error;
-  }
-};
+export function getModels(page, pageSize, searchQuery) {
+  return request({
+    url: '/api/simulation/getModels',
+    method: 'get',
+    params: {
+      page,
+      pageSize,
+      searchQuery
+    }
+  });
+}
 
 /**
- * 获取设备列表（支持分页和模糊搜索）
+ * 获取设备列表
  * @param {number} page - 当前页码
- * @param {number} pageSize - 每页大小
- * @param {string} searchQuery - 搜索关键字
- * @returns {Promise<{ devices: { id: number, name: string }[], total: number }>}
+ * @param {number} pageSize - 每页数量
+ * @param {string} [searchQuery] - 搜索关键词(可选)
+ * @returns {Promise} 包含设备列表的Promise
  */
-export const getDevices = async (page = 1, pageSize = 10, searchQuery = '') => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/devices`, {
-      params: {
-        page,
-        pageSize,
-        searchQuery,
-      },
-    });
-    return {
-      devices: response.data.devices,
-      total: response.data.total,
-    };
-  } catch (error) {
-    console.error('Error fetching devices:', error);
-    throw error;
-  }
-};
-
-/**
- * 提交模拟任务
- * @param {number} modelId - 模型 ID
- * @param {number} deviceId - 设备 ID
- * @param {File} file - 上传的文件
- * @returns {Promise<{ taskId: string }>} - 返回任务 ID
- */
-export const submitSimulationTask = async (modelId, deviceId, file) => {
-  try {
-    const formData = new FormData();
-    formData.append('modelId', modelId);
-    formData.append('deviceId', deviceId);
-    formData.append('file', file);
-
-    const response = await axios.post(`${API_BASE_URL}/simulate`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error submitting simulation task:', error);
-    throw error;
-  }
-};
+export function getDevices(page, pageSize, searchQuery) {
+  return request({
+    url: '/api/components/user/devices', // 使用设备列表API
+    method: 'get',
+    params: {
+      page,
+      pageSize,
+      searchQuery
+    }
+  });
+}
 
 /**
  * 获取模拟结果
- * @param {string} taskId - 任务 ID
- * @returns {Promise<{ imageUrl: string, damageLocation: string, lifespan: number, healthIndex: number }>}
- * healthIndex是健康指数
+ * @param {number} modelId - 所选模型ID
+ * @param {number} deviceId - 所选设备ID
+ * @param {File} file - 上传的数据文件
+ * @returns {Promise} 包含模拟结果的Promise
  */
-export const getSimulationResult = async (taskId) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/simulate/${taskId}/result`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching simulation result:', error);
-    throw error;
-  }
+export function getSimulationResult(modelId, deviceId, file) {
+  // 创建FormData对象用于文件上传
+  const formData = new FormData();
+  formData.append('modelId', modelId);
+  formData.append('deviceId', deviceId);
+  formData.append('file', file);
+
+  return request({
+    url: '/api/simulation/getSimulationResult',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}
+
+export default {
+  getModels,
+  getDevices,
+  getSimulationResult
 };

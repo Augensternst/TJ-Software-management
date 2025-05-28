@@ -1,6 +1,7 @@
 package com.example.software_management.Repository;
 
 import com.example.software_management.Model.Model;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,16 +14,11 @@ import java.util.List;
 @Repository
 public interface ModelRepository extends JpaRepository<Model, Integer> {
 
-    /**
-     * 根据名称模糊查询模型
-     * @param searchQuery 搜索关键词
-     * @param pageable 分页参数
-     * @return 模型分页结果
-     */
-    @Query("SELECT m FROM Model m WHERE :searchQuery IS NULL OR m.name LIKE %:searchQuery%")
-    Page<Model> findModelsWithSearch(
-            @Param("searchQuery") String searchQuery,
-            Pageable pageable);
+    // 标准分页查询
+    @NotNull Page<Model> findAll(@NotNull Pageable pageable);
+
+    // 按名称搜索的分页查询
+    Page<Model> findByNameContaining(String name, Pageable pageable);
 
     /**
      * 根据名称查找模型

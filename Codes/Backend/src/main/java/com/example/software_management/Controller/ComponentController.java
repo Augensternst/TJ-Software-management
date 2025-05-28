@@ -104,61 +104,6 @@ public class ComponentController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 获取设备健康数据（最近7天）
-     * @param deviceId 设备ID
-     * @return 健康数据列表
-     */
-    @GetMapping("/monitor/{deviceId}/health")
-    public ResponseEntity<Map<String, Object>> getDeviceHealthData(@PathVariable Integer deviceId) {
-        List<Double> healthData = componentService.getDeviceHealthData(deviceId);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("values", healthData);
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 获取设备能耗数据（最近7天）
-     * @param deviceId 设备ID
-     * @return 能耗数据列表和总成本
-     */
-    @GetMapping("/monitor/{deviceId}/energy")
-    public ResponseEntity<Map<String, Object>> getDeviceEnergyData(@PathVariable Integer deviceId) {
-        ReportDTO energyData = componentService.getDeviceEnergyData(deviceId);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("values", energyData.getValues());
-        response.put("energyCost", energyData.getEnergyCost());
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 获取设备指标卡片数据
-     * @param deviceId 设备ID
-     * @param page 页码
-     * @param pageSize 每页条数
-     * @return 指标卡片数据
-     */
-    @GetMapping("/monitor/{deviceId}/cards")
-    public ResponseEntity<Map<String, Object>> getDeviceMetricCards(
-            @PathVariable Integer deviceId,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
-
-        ReportDTO metricCards = componentService.getDeviceMetricCards(deviceId, page, pageSize);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("items", metricCards.getItems());
-        response.put("totalPages", metricCards.getTotalPages());
-
-        return ResponseEntity.ok(response);
-    }
 
     /**
      * 获取预警状态分布（复用设备状态分布接口）

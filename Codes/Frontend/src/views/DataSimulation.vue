@@ -14,7 +14,6 @@
               :items="selections.model.items"
               :current-page="selections.model.currentPage"
               :total-pages="selections.model.totalPages"
-
               @select="(command) => onSelect('model', command)"
               @search="(query) => onSearch('model', query)"
               @prev-page="() => prevPage('model')"
@@ -33,7 +32,6 @@
               :items="selections.device.items"
               :current-page="selections.device.currentPage"
               :total-pages="selections.device.totalPages"
-
               @select="(command) => onSelect('device', command)"
               @search="(query) => onSearch('device', query)"
               @prev-page="() => prevPage('device')"
@@ -53,12 +51,12 @@
           <input type="file" ref="fileInput" style="display: none;" @change="handleFileUpload" />
         </div>
       </div>
-      <div v-if="isStart===false" class="data-result">
+      <div v-if="!isStart" class="data-result">
         <img src="@/assets/DataSimulation/simulationResult.svg" alt="计算结果" style="width:90%;align-self: center">
         <div class="simulation-result">
           <div class="simulation-label worksans-font-green">器件图片</div>
           <div class="simulation-value">
-            <img :src="simulationResult?.imageUrl || '@/assets/MonitorCenter/TestImage.png'" alt="器件图片" style="width:15%;align-self: center;justify-self: center;">
+            <img :src="simulationResult?.imageUrl || require('@/assets/MonitorCenter/TestImage.png')" alt="器件图片" style="width:15%;align-self: center;justify-self: center;">
           </div>
         </div>
         <div class="simulation-result">
@@ -87,89 +85,174 @@
 </template>
 
 <script>
-import { drawHealthChart } from "@/utils/drawHealthChart";
-import {getModels,getDevices, submitSimulationTask,getSimulationResult} from "@/api/dataSimulationApi";
+import {drawHealthChart} from "@/utils/drawHealthChart";
+import { getModels, getDevices, getSimulationResult } from "@/api/dataSimulationApi";
 import SelectDropdown from "@/components/SelectDropdown.vue";
+
 export default {
   name: 'DataSimulation',
-  components:{
+  components: {
     SelectDropdown,
   },
   data() {
     return {
-      health_data: 80, // 健康度数据
-      models: [{id:1,name:"模型1"}], // 模型选项
-      devices: [{id:1,name:"设备1"}], // 设备选项
-      selectedModel: null, // 当前选中的模型
-      selectedDevice: null, // 当前选中的设备
       fileName: '',
-      taskId: null, // 任务 ID
-      simulationResult: null, // 模拟结果
-      isLoading: false, // 是否正在加载
-      isStart:true,// 是否是初始化
+      simulationResult: null,
+      isLoading: false,
+      isStart: true,
 
       // 通用数据结构
       selections: {
         model: {
-          items: [{ id: 1, name: "模型1" }], // 模型选项
-          selected: null, // 当前选中的模型
+          items: [],
+          selected: null,
           message: "选择模型",
-          searchQuery: '', // 搜索关键字
-          currentPage: 1, // 当前页码
-          pageSize: 5, // 每页大小
-          totalPages: 1, // 总页数
+          searchQuery: '',
+          currentPage: 1,
+          pageSize: 5,
+          totalPages: 1,
         },
         device: {
-          items: [{ id: 1, name: "设备1" }], // 设备选项
-          selected: null, // 当前选中的设备
+          items: [],
+          selected: null,
           message: "选择设备",
-          searchQuery: '', // 搜索关键字
-          currentPage: 1, // 当前页码
-          pageSize: 5, // 每页大小
-          totalPages: 1, // 总页数
+          searchQuery: '',
+          currentPage: 1,
+          pageSize: 5,
+          totalPages: 1,
         },
       },
     };
   },
-   async mounted() {
-    // 初始化加载模型和设备列表（第一页）
-      await this.fetchData('model');
-      await this.fetchData('device');
-
+  async mounted() {
+    // 初始化加载模型和设备列表
+    await this.fetchModelData();
+    await this.fetchDeviceData();
   },
   methods: {
-    // 通用方法 获取数据
-    async fetchData(type) {
+    // 获取模型数据
+    async fetchModelData() {
       try {
-        const selection = this.selections[type];
-        const response = await (type === 'model' ? getModels : getDevices)(
+        const selection = this.selections.model;
+        // 空字符串时不传递searchQuery参数
+        const response = await getModels(
             selection.currentPage,
             selection.pageSize,
-            selection.searchQuery
+            selection.searchQuery || undefined
         );
-        selection.items = response[type === 'model' ? 'models' : 'devices'].map(item => ({
-          id: item.id,
-          name: item.name,
-        }));
-        selection.totalPages = Math.ceil(response.total / selection.pageSize);
+
+        console.log('模型数据响应:', response);
+
+        // 安全处理响应数据
+        if (response && response.data && response.data.success) {
+          if (Array.isArray(response.data.models)) {
+            selection.items = response.data.models.map(item => ({
+              id: item.id,
+              name: item.name,
+            }));
+
+            // 计算总页数
+            if (response.data.total) {
+              selection.totalPages = Math.ceil(response.data.total / selection.pageSize);
+            } else {
+              selection.totalPages = Math.ceil(response.data.models.length / selection.pageSize);
+            }
+          } else {
+            console.warn('API返回的模型列表不是数组:', response.data);
+            this.setDefaultModelData();
+          }
+        } else {
+          console.warn('API响应格式不符合预期:', response);
+          this.setDefaultModelData();
+        }
       } catch (error) {
-        console.error(`Error fetching ${type}:`, error);
+        console.error('获取模型数据失败:', error);
+        this.setDefaultModelData();
       }
     },
 
-    // 通用方法：搜索
+    // 设置默认模型数据
+    setDefaultModelData() {
+      this.selections.model.items = [
+        {id: 1, name: "模型A"},
+        {id: 2, name: "模型B"}
+      ];
+      this.selections.model.totalPages = 1;
+    },
+
+    // 获取设备数据
+    async fetchDeviceData() {
+      try {
+        const selection = this.selections.device;
+        // 空字符串时不传递searchQuery参数
+        const response = await getDevices(
+            selection.currentPage,
+            selection.pageSize,
+            selection.searchQuery || undefined
+        );
+
+        console.log('设备列表响应:', response);
+
+        // 安全处理响应数据
+        if (response && response.data && response.data.success) {
+          if (Array.isArray(response.data.devices)) {
+            selection.items = response.data.devices.map(item => ({
+              id: item.deviceId || item.id,
+              name: item.name,
+            }));
+
+            // 计算总页数
+            if (response.data.total) {
+              selection.totalPages = Math.ceil(response.data.total / selection.pageSize);
+            } else {
+              selection.totalPages = Math.ceil(response.data.devices.length / selection.pageSize);
+            }
+          } else {
+            console.warn('API返回的设备列表不是数组:', response.data);
+            this.setDefaultDeviceData();
+          }
+        } else {
+          console.warn('API响应格式不符合预期:', response);
+          this.setDefaultDeviceData();
+        }
+      } catch (error) {
+        console.error('获取设备列表失败:', error);
+        this.setDefaultDeviceData();
+      }
+    },
+
+    // 设置默认设备数据
+    setDefaultDeviceData() {
+      this.selections.device.items = [
+        {id: 1, name: "发动机A"},
+        {id: 2, name: "发动机B"}
+      ];
+      this.selections.device.totalPages = 1;
+    },
+
+    // 支持模型和设备搜索
     onSearch(type, query) {
       const selection = this.selections[type];
       selection.searchQuery = query;
       selection.currentPage = 1; // 搜索时重置为第一页
-      this.fetchData(type);
+
+      if (type === 'model') {
+        this.fetchModelData();
+      } else if (type === 'device') {
+        this.fetchDeviceData();
+      }
     },
-// 通用方法：翻页
+
+    // 翻页 - 支持模型和设备
     prevPage(type) {
       const selection = this.selections[type];
       if (selection.currentPage > 1) {
         selection.currentPage--;
-        this.fetchData(type);
+        if (type === 'model') {
+          this.fetchModelData();
+        } else if (type === 'device') {
+          this.fetchDeviceData();
+        }
       }
     },
 
@@ -177,147 +260,42 @@ export default {
       const selection = this.selections[type];
       if (selection.currentPage < selection.totalPages) {
         selection.currentPage++;
-        this.fetchData(type);
+        if (type === 'model') {
+          this.fetchModelData();
+        } else if (type === 'device') {
+          this.fetchDeviceData();
+        }
       }
     },
 
-    // 通用方法：选择
+    // 选择
     onSelect(type, command) {
       const selection = this.selections[type];
       selection.selected = command;
       selection.message = command.name;
-      console.log(selection);
-      console.log(`Selected ${type}:`, command);
+      console.log(`已选择 ${type}:`, command);
     },
 
-
-    //   // 获取模型列表
-    // async fetchModels() {
-    //   try {
-    //     const response = await getModels(this.modelCurrentPage, this.modelPageSize, this.modelSearchQuery);
-    //     this.models = response.models.map(model => ({ id: model.id, name: model.name }));
-    //     this.modelTotalPages = Math.ceil(response.total / this.modelPageSize);
-    //   } catch (error) {
-    //     console.error('Error fetching models:', error);
-    //   }
-    // },
-    //   // 获取设备列表
-    // async fetchDevices() {
-    //   try {
-    //     const response = await getDevices(this.deviceCurrentPage, this.devicePageSize, this.deviceSearchQuery);
-    //     this.devices = response.devices.map(device => ({ id: device.id, name: device.name }));
-    //     this.deviceTotalPages = Math.ceil(response.total / this.devicePageSize);
-    //   } catch (error) {
-    //     console.error('Error fetching devices:', error);
-    //   }
-    // },
-    //
-    //   // 模型搜索
-    // onModelSearch(query) {
-    //   this.modelSearchQuery=query;
-    //   this.modelCurrentPage = 1; // 搜索时重置为第一页
-    //   this.fetchModels();
-    // },
-    //
-    // // 设备搜索
-    // onDeviceSearch(query) {
-    //   this.deviceSearchQuery=query;
-    //   this.deviceCurrentPage = 1; // 搜索时重置为第一页
-    //   this.fetchDevices();
-    // },
-    //
-    //   // 模型翻页
-    // prevModelPage() {
-    //   console.log(this.modelCurrentPage);
-    //   if (this.modelCurrentPage > 1) {
-    //     this.modelCurrentPage--;
-    //     this.fetchModels();
-    //   }
-    // },
-    // nextModelPage() {
-    //   if (this.modelCurrentPage < this.modelTotalPages) {
-    //     this.modelCurrentPage++;
-    //     this.fetchModels();
-    //   }
-    // },
-    //
-    //   // 设备翻页
-    // prevDevicePage() {
-    //   if (this.deviceCurrentPage > 1) {
-    //     this.deviceCurrentPage--;
-    //     this.fetchDevices();
-    //   }
-    // },
-    // nextDevicePage() {
-    //   if (this.deviceCurrentPage < this.deviceTotalPages) {
-    //     this.deviceCurrentPage++;
-    //     this.fetchDevices();
-    //   }
-    // },
-    //
-    //
-    // onModelChange(command) {
-    //
-    //   this.selectedModel = command;
-    //   this.modelMessage = command.name;
-    //   console.log('Selected Model:', this.selectedModel);
-    //
-    //
-    // },
-    // onDeviceChange(command) {
-    //
-    //   this.selectedDevice = command;
-    //   this.equipmentMessage = command.name;
-    //   console.log('Selected Device:', this.selectedDevice);
-    //
-    // },
+    // 触发文件上传
     triggerFileUpload() {
-      this.$refs.fileInput.click(); // 触发文件选择
+      this.$refs.fileInput.click();
     },
+
+    // 处理文件上传
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
-        console.log('Selected File:', file);
+        console.log('已选择文件:', file);
         this.fileName = file.name;
       }
     },
 
-    // async startSimulation() {
-    //   if (!this.selectedModel || !this.selectedDevice || !this.fileName) {
-    //     alert('请选择模型、设备并上传文件');
-    //     return;
-    //   }
-    //
-    //   this.isLoading = true;
-    //   this.isStart=false;
-    //
-    //   try {
-    //     // 提交模拟任务
-    //     const taskResponse = await submitSimulationTask(
-    //       this.selectedModel.id,
-    //       this.selectedDevice.id,
-    //       this.$refs.fileInput.files[0]
-    //     );
-    //     this.taskId = taskResponse.taskId;
-    //
-    //     // 获取模拟结果
-    //     const resultResponse = await getSimulationResult(this.taskId);
-    //     this.simulationResult = resultResponse;
-    //
-    //     // 更新健康度图表
-    //     if (this.$refs.healthChart) {
-    //       drawHealthChart(this.$refs.healthChart, resultResponse.healthIndex);
-    //     }
-    //   } catch (error) {
-    //     console.error('Error during simulation:', error);
-    //   } finally {
-    //     this.isLoading = false;
-    //   }
-    // },
-
+    // 开始模拟
     async startSimulation() {
       const {model, device} = this.selections;
-      if (!model.selected || !device.selected || !this.fileName) {
+
+      // 验证所有必填项
+      if (!model.selected || !device.selected || !this.$refs.fileInput.files[0]) {
         alert('请选择模型、设备并上传文件');
         return;
       }
@@ -326,21 +304,35 @@ export default {
       this.isStart = false;
 
       try {
-        const taskResponse = await submitSimulationTask(
+        console.log('开始模拟计算...');
+        console.log('模型ID:', model.selected.id);
+        console.log('设备ID:', device.selected.id);
+        console.log('文件:', this.$refs.fileInput.files[0].name);
+
+        // 直接调用模拟接口
+        const response = await getSimulationResult(
             model.selected.id,
             device.selected.id,
             this.$refs.fileInput.files[0]
         );
-        this.taskId = taskResponse.taskId;
 
-        const resultResponse = await getSimulationResult(this.taskId);
-        this.simulationResult = resultResponse;
+        console.log('模拟结果:', response);
 
-        if (this.$refs.healthChart) {
-          drawHealthChart(this.$refs.healthChart, resultResponse.healthIndex);
+        if (response && response.data && response.data.success) {
+          this.simulationResult = response.data;
+
+          // 渲染健康度图表
+          this.$nextTick(() => {
+            if (this.$refs.healthChart) {
+              drawHealthChart(this.$refs.healthChart, response.data.healthIndex);
+            }
+          });
+        } else {
+          alert('模拟失败: ' + ((response && response.data && response.data.message) || '未知错误'));
         }
       } catch (error) {
-        console.error('Error during simulation:', error);
+        console.error('模拟过程中出错:', error);
+        alert('模拟过程中出错，请稍后重试');
       } finally {
         this.isLoading = false;
       }
@@ -351,6 +343,4 @@ export default {
 
 <style scoped>
 @import '@/assets/DataSimulation/DataSimulationStyle.css';
-
-
 </style>

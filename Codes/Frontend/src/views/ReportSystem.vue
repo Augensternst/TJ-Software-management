@@ -63,7 +63,7 @@
           <div class="row">
             <div class="image-container">
               <el-image
-                  :src="currentDevice.imgSrc || require(`../assets/ReportSystem/example.png`)"
+                  :src="currentDevice.imgSrc || require(`@/assets/ReportSystem/example.png`)"
                   :preview-src-list="[currentDevice.imgSrc]"
                   fit="contain"
                   class="aspect-ratio-image"
@@ -80,7 +80,7 @@
           <div class="device-selector-content">
             <h3>选择监控设备</h3>
             <ul>
-              <li v-for="device in devices" :key="device" @click="selectDevice(device)">
+              <li v-for="device in devices" :key="device.id" @click="selectDevice(device)">
                 {{ device.name }}
               </li>
             </ul>
@@ -105,15 +105,19 @@
 </template>
 
 <script>
-import axios from 'axios';
 import BarChart from "@/components/BarChart.vue";
 import LineChart from "@/components/LineChart.vue";
 import AeroEngineChart from "@/components/CircularDiagram.vue";
+import {
+  getTodayAlertStats,
+  getAllAlertStats,
+  getWeeklyAlertStats,
+  getDeviceList,
+  getDeviceAttributes,
+  exportDeviceAttributes,
+  getDeviceById
+} from '@/api/reportSystemApi';
 
-const api = axios.create({
-  baseURL: process.env.VUE_APP_API_URL || 'https://af1f2aee-0858-4e5f-8a9e-6e279126c69d.mock.pstmn.io/api',
-  timeout: 10000
-})
 export default {
   name: 'ReportSystem',
   components: {AeroEngineChart, LineChart, BarChart},
@@ -136,26 +140,24 @@ export default {
       },
       devices: [],
       currentDevice: {
-        id: "1234",
+        id: "",
         name: "加载中..."
       },
       showDeviceSelector: false,
       deviceData: {},
-      weekBarChartData: {},
       chartData: {
         xAxis: ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
         series: [
           {
             name: '已处理',
-            data: [32, 22, 30, 40, 21, 20, 3]
+            data: [0, 0, 0, 0, 0, 0, 0]
           },
           {
             name: '未处理',
-            data: [12, 5, 7, 3, 2, 1, 0]
+            data: [0, 0, 0, 0, 0, 0, 0]
           }
         ]
       },
-
     }
   },
   created() {
@@ -164,14 +166,19 @@ export default {
     this.fetchTotalStats();
     this.fetchWeekStats();
     this.fetchDevices();
-    this.fetchWeekTrend();
   },
   methods: {
     // 获取今日处理情况
     async fetchTodayStats() {
       try {
-        const response = await api.get(`/stats/today`);
-        this.todayStats = response.data;
+        const response = await getTodayAlertStats();
+        console.log('今日警报数据:', response);
+        if (response.data.success) {
+          this.todayStats = {
+            processed: response.data.confirmedToday,
+            notProcessed: response.data.unconfirmedToday
+          };
+        }
       } catch (error) {
         console.error('获取今日数据失败:', error);
         // 使用默认数据
@@ -185,8 +192,15 @@ export default {
     // 获取总体统计数据
     async fetchTotalStats() {
       try {
-        const response = await api.get(`/stats/total`);
-        this.totalStats = response.data;
+        const response = await getAllAlertStats();
+        console.log('全局警报数据:', response);
+        if (response.data.success) {
+          this.totalStats = {
+            total: response.data.totalAlerts,
+            processed: response.data.confirmed,
+            notProcessed: response.data.unconfirmed
+          };
+        }
       } catch (error) {
         console.error('获取总体统计数据失败:', error);
         // 使用默认数据
@@ -201,22 +215,18 @@ export default {
     // 获取本周统计数据
     async fetchWeekStats() {
       try {
-        const response = await api.get(`/stats/week`);
-        this.weekStats = response.data;
+        const response = await getWeeklyAlertStats();
+        console.log('周警报数据:', response);
+        if (response.data.success) {
+          this.weekStats = {
+            total: response.data.totalWeekly,
+            processed: response.data.confirmedWeekly,
+            notProcessed: response.data.unconfirmedWeekly
+          };
 
-        // 更新周统计柱状图数据
-        this.weekBarChartData = {
-          labels: ['预警数量', '已处理', '未处理'],
-          datasets: [
-            {
-              data: [
-                this.weekStats.total,
-                this.weekStats.processed,
-                this.weekStats.notProcessed
-              ]
-            }
-          ]
-        };
+          // 更新周趋势数据
+          this.updateWeekTrendChart(response.data.dailyStats);
+        }
       } catch (error) {
         console.error('获取周统计数据失败:', error);
         // 使用默认数据
@@ -228,126 +238,146 @@ export default {
       }
     },
 
+    // 更新周趋势图表
+    updateWeekTrendChart(dailyStats) {
+      if (!dailyStats || !dailyStats.length) return;
+
+      const days = dailyStats.map(stat => {
+        // 将日期格式化为星期几
+        const date = new Date(stat.date);
+        const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        return weekDays[date.getDay()];
+      });
+
+      const confirmed = dailyStats.map(stat => stat.confirmed);
+      const unconfirmed = dailyStats.map(stat => stat.unconfirmed);
+
+      this.chartData = {
+        xAxis: days,
+        series: [
+          {
+            name: '已处理',
+            data: confirmed
+          },
+          {
+            name: '未处理',
+            data: unconfirmed
+          }
+        ]
+      };
+    },
+
     // 获取设备列表
     async fetchDevices() {
       try {
-        const response = await api.get(`/devices`);
-        this.devices = response.data.devices;
-        // 默认选择第一个设备
-        if (this.devices.length > 0) {
-          this.currentDevice = this.devices[0];
-          console.log(this.currentDevice);
+        const response = await getDeviceList();
+        console.log('设备列表数据:', response);
+        if (response.data.success) {
+          this.devices = response.data.devices.map(device => ({
+            id: device.deviceId,
+            name: device.name,
+            imgSrc: device.picture || require('@/assets/ReportSystem/example.png')
+          }));
+
+          // 默认选择第一个设备
+          if (this.devices.length > 0) {
+            this.selectDevice(this.devices[0]);
+          }
         }
       } catch (error) {
         console.error('获取设备列表失败:', error);
         // 使用默认数据
         this.devices = [
           {
-            "id": "#1534",
+            "id": "1534",
             "name": "航空发动机A1",
-            "imgSrc": "../assets/ReportSystem/example.png"
+            "imgSrc": require("@/assets/ReportSystem/example.png")
           },
           {
-            "id": "#1535",
+            "id": "1535",
             "name": "航空发动机A2",
-            "imgSrc": "../assets/ReportSystem/example.png"
-          }, {
-            "id": "#1536",
-            "name": "航空发动机A3",
-            "imgSrc": "../assets/ReportSystem/example.png"
-          }, {
-            "id": "#1537",
-            "name": "航空发动机A4",
-            "imgSrc": "../assets/ReportSystem/example.png"
+            "imgSrc": require("@/assets/ReportSystem/example.png")
           }
         ];
-        this.currentDevice = {
-          "id": "#1534",
-          "name": "航空发动机A1"
-        };
+        this.currentDevice = this.devices[0];
       }
     },
 
-    // 获取周趋势数据
-    async fetchWeekTrend() {
+    // 获取设备属性
+    async fetchDeviceAttributes(deviceId) {
       try {
-        const response = await api.get(`/stats/week-trend`);
-        const data = response.data;
-
-        this.chartData = {
-          xAxis: data.days || ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
-          series: [
-            {
-              name: '已处理',
-              data: data.processed || [0, 0, 0, 0, 0, 0, 0]
-            },
-            {
-              name: '未处理',
-              data: data.notProcessed || [0, 0, 0, 0, 0, 0, 0]
-            }
-          ]
-        };
-
+        const response = await getDeviceAttributes(deviceId);
+        console.log('设备属性数据:', response);
+        if (response.data.success) {
+          this.deviceData = response.data.attributes;
+        }
       } catch (error) {
-        console.error('获取周趋势数据失败:', error);
-        // 使用默认数据
-        this.chartData = {
-          xAxis: ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
-          series: [
-            {
-              name: '已处理',
-              data: [32, 22, 30, 40, 21, 20, 3]
-            },
-            {
-              name: '未处理',
-              data: [12, 5, 7, 3, 2, 1, 0]
-            }
-          ]
-        };
+        console.error('获取设备属性失败:', error);
+        this.deviceData = [];
+      }
+    },
+
+    // 获取设备详细信息
+    async fetchDeviceDetails(deviceId) {
+      try {
+        console.log("设备id",deviceId);
+        const response = await getDeviceById(deviceId);
+        console.log('设备详细信息:', response);
+        if (response.data.success) {
+          // 更新当前设备的名称和图片
+          this.currentDevice.name = response.data.deviceName;
+          if (response.data.picture) {
+            this.currentDevice.imgSrc = response.data.picture;
+          }
+        }
+      } catch (error) {
+        console.error('获取设备详细信息失败:', error);
       }
     },
 
     // 选择设备
-    selectDevice(device) {
+    async selectDevice(device) {
       this.currentDevice = device;
       this.showDeviceSelector = false;
+      console.log("当前设备列表",device);
+
+      // 获取设备属性和详细信息
+      await this.fetchDeviceAttributes(device.id);
+      await this.fetchDeviceDetails(device.id);
     },
 
     // 导出数据功能
     async exportData() {
-      const id = this.currentDevice.id;
-      const name = this.currentDevice.name;
-      // 使用axios发送请求下载文件
-      api.get('/device',{
-        params: {deviceId: id},
-        responseType: 'blob'  // 指定响应类型为blob
-      })
-          .then(response => {
-            // 创建一个Blob对象
-            const blob = new Blob([response.data], {type: response.headers['content-type']});
+      try {
+        const deviceId = this.currentDevice.id;
+        const response = await exportDeviceAttributes(deviceId);
+        console.log(response)
 
-            // 创建一个下载链接
-            const downloadLink = document.createElement('a');
+        // 创建Blob对象并下载
+        const blob = new Blob([response.data], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const url = window.URL.createObjectURL(blob);
 
-            // 创建一个URL对象
-            const url = window.URL.createObjectURL(blob);
+        // 创建下载链接
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = `设备${deviceId}属性.xlsx`;
 
-            // 设置下载链接属性
-            downloadLink.href = url;
-            downloadLink.download = `device-${id}-${name}-export.xlsx`;
+        // 触发下载
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
 
-            // 添加链接到页面，触发点击，然后移除
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-
-            // 释放URL对象
-            window.URL.revokeObjectURL(url);
-          })
-          .catch(error => {
-            console.error('导出数据失败:', error);
-            this.$message.error('导出数据失败，请稍后重试');
-          });
+        // 释放URL对象
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('导出数据失败:', error);
+        // 如果有Element UI，可以使用Message组件
+        if (this.$message) {
+          this.$message.error('导出数据失败，请稍后重试');
+        } else {
+          alert('导出数据失败，请稍后重试');
+        }
+      }
     }
   }
 }

@@ -98,10 +98,15 @@ public class SimulationServiceImpl implements SimulationService {
         Map<String, Object> response = new HashMap<>();
 
         // 创建分页请求
-        Pageable pageable = PageRequest.of(page - 1, pageSize); // 页码从0开始，但API从1开始
+        Pageable pageable = PageRequest.of(page - 1, pageSize);
 
-        // 查询数据库
-        Page<Model> modelsPage = modelRepository.findModelsWithSearch(searchQuery, pageable);
+        // 根据是否有搜索词选择不同查询
+        Page<Model> modelsPage;
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            modelsPage = modelRepository.findAll(pageable);
+        } else {
+            modelsPage = modelRepository.findByNameContaining(searchQuery, pageable);
+        }
 
         // 准备返回数据
         List<Map<String, Object>> modelsList = new ArrayList<>();
