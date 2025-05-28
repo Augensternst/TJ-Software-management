@@ -15,10 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -189,4 +186,27 @@ public class ComponentServiceImpl implements ComponentService {
             return -1;
         }
     }
+
+    @Override
+    public Map<String, Object> getDeviceById(Integer deviceId) {
+        // 查询设备
+        Optional<Component> componentOptional = componentRepository.findById(deviceId);
+
+        // 准备返回数据
+        Map<String, Object> result = new HashMap<>();
+
+        if (componentOptional.isPresent()) {
+            Component component = componentOptional.get();
+            result.put("success", true);
+            result.put("deviceName", component.getName());
+            result.put("picture", component.getPic());
+        } else {
+            result.put("success", false);
+            result.put("message", "设备不存在");
+        }
+
+        return result;
+    }
+
+
 }

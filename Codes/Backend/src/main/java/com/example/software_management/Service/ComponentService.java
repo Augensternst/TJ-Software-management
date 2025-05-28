@@ -69,4 +69,12 @@ public interface ComponentService {
      * @return 指标卡片数据
      */
     ReportDTO getDeviceMetricCards(Integer deviceId, int page, int pageSize);
+
+
+    /**
+     * 根据设备ID获取设备基本信息
+     * @param deviceId 设备ID
+     * @return 设备基本信息
+     */
+    Map<String, Object> getDeviceById(Integer deviceId);
 }

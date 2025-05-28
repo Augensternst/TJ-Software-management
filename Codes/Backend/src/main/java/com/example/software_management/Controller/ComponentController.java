@@ -6,6 +6,7 @@ import com.example.software_management.Security.GetInfo;
 import com.example.software_management.Service.ComponentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -168,4 +169,21 @@ public class ComponentController {
         // 直接复用设备状态分布接口
         return getUserDeviceStatusSummary();
     }
+
+    /**
+     * 根据设备ID获取设备基本信息
+     * @param deviceId 设备ID
+     * @return 设备基本信息
+     */
+    @GetMapping("/getdevice")
+    public ResponseEntity<Map<String, Object>> getDeviceById(@RequestParam Integer deviceId) {
+        Map<String, Object> result = componentService.getDeviceById(deviceId);
+        if ((Boolean) result.get("success")) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(result);
+        }
+    }
+
+
 }
