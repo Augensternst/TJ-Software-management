@@ -1,55 +1,32 @@
-import axios from 'axios';
+import request from '@/utils/request';
 
-const API_BASE_URL = 'https://your-api-endpoint.com/api';
+//获取设备名字
+export function getDeviceName  (deviceId) {
+  return request.get('/api/reports/devices/exportDeviceAttributes', null, {
+    params: deviceId});
+}
 
-/**
- * 获取设备的健康数据
- * @param {number} deviceId - 设备 ID
- * @returns {Promise<{ labels: string[], values: number[] }>}
- */
-export const getDeviceHealthData = async (deviceId) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/devices/${deviceId}/health`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching device health data:', error);
-    throw error;
-  }
+
+//获取设备一周健康数据
+export const getDeviceHealthData = (deviceId) => {
+  return request.get(`/api/data/monitor/${deviceId}/health`, {
+    validateStatus: function (status) {
+      return status === 200; // 严格校验HTTP状态码
+    }
+  });
 };
 
-/**
- * 获取设备的能耗数据
- * @param {number} deviceId - 设备 ID
- * @returns {Promise<{ labels: string[], values: number[], energyCost: number }>}
- */
-export const getDeviceEnergyData = async (deviceId) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/devices/${deviceId}/energy`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching device energy data:', error);
-    throw error;
-  }
+
+export const getDeviceEnergyData = (deviceId) => {
+  return request.get(`/api/monitor/${deviceId}/energy`);
 };
 
-/**
- * 获取设备的卡片数据（就是各项指标 health如果为-1则不会绘制或者展示健康指数）
- * @param {number} deviceId - 设备 ID
- * @param {number} page - 当前页码
- * @param {number} pageSize - 每页大小
- * @returns {Promise<{ items: { name: string, value: number, unit: string, health: number }[], totalPages: number }>}
- */
-export const getDeviceCards = async (deviceId, page, pageSize) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/devices/${deviceId}/cards`, {
-      params: {
-        page,
-        pageSize,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching device cards:', error);
-    throw error;
-  }
+
+export const getDeviceCards = (deviceId, page, pageSize) => {
+  return request.get(`/api/monitor/${deviceId}/cards`, {
+    params: {
+      page,
+      pageSize
+    }
+  });
 };

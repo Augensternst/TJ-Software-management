@@ -73,10 +73,6 @@
             <div class="function-icon">
               <i class="fas fa-bell"></i>
             </div>
-            <div class="function-info">
-              <div class="function-label">待处理警报</div>
-              <div class="function-value">{{ pendingAlarms }}</div>
-            </div>
           </div>
           
 
@@ -97,7 +93,7 @@
         
         <!-- 设备卡片网格 -->
         <div class="device-grid" ref="deviceContainer">
-          <div class="device-card" v-for="(device, index) in displayedDevices" :key="index">
+          <div class="device-card" v-for="(device, index) in displayedDevices" :key="index" @click="navigateToMonitor(device.id)">
             <div class="center-device-image">
               <img :src="device.image || 'https://placehold.co/200x150?text=设备图片'" alt="设备图片">
             </div>
@@ -138,62 +134,51 @@
 </template>
 
 <script>
+import { getUserDeviceCount , getUserDevices,getUserDeviceStatusSummary,getUserDefectiveDevices,getAlertStatusSummary} from '@/api/user'; //导入接口
+
 export default {
   name: 'DeviceCenter',
   data() {
     return {
       // 设备和测点统计
-      deviceCount: 186,
-      measurePointCount: 1548,
+      deviceCount: 0,
+      measurePointCount: 0,
       
-      // 设备状态数据
+      // 设备状态数据,初始化
       deviceStatus: [
-        { name: '正常', count: 142, color: '#34C759' },
-        { name: '预警', count: 24, color: '#FF9500' },
-        { name: '故障', count: 8, color: '#FF3B30' },
+        { status: 1, count: 0, name: '正常', color: '#34C759' },
+        { status: 2, count: 0, name: '中等', color: '#FF9500' },
+        { status: 3, count: 0, name: '严重', color: '#FF3B30' }
       ],
       
       // 缺陷设备数据
-      defectDevices: [
-        { name: '空压机01', time: '2025-03-15', level: 3, levelText: '严重' },
-        { name: '水泵系统A', time: '2025-03-16', level: 2, levelText: '中等' },
-        { name: '电机控制器', time: '2025-03-17', level: 1, levelText: '轻微' },
-        { name: '电机控制器', time: '2025-03-17', level: 1, levelText: '轻微' },
-        { name: '电机控制器', time: '2025-03-17', level: 1, levelText: '轻微' },
-        { name: '电机控制器', time: '2025-03-17', level: 1, levelText: '轻微' },
-      ],
+      defectDevices: [],
       
       // 预警状态分布
-      warningDistribution: [
-        { name: '一般提醒', percentage: 45, color: '#5856D6' },
-        { name: '维修', percentage: 30, color: '#FF9500' },
-        { name: '警告', percentage: 25, color: '#FF2D55' }
-      ],
+      warningDistribution: [],
       
       // 功能区数据
-      pendingAlarms: 14,
-      pendingDefects: 7,
       searchQuery: '',
       
       // 设备数据
-      devices: [
-        { id: 1, name: '发动机叶片A-1', status: 'normal', statusText: '正常', image: require('@/assets/DeviceCenter/ex/A.png') },
-        { id: 2, name: '发动机叶片A-2', status: 'warning', statusText: '预警', image: require('@/assets/DeviceCenter/ex/A.png') },
-        { id: 3, name: '发动机叶片B-1', status: 'normal', statusText: '正常', image: require('@/assets/DeviceCenter/ex/B.png')},
-        { id: 4, name: '发动机叶片B-2', status: 'error', statusText: '故障', image: require('@/assets/DeviceCenter/ex/B.png') },
-        { id: 5, name: '发动机叶片C-1', status: 'normal', statusText: '正常', image: require('@/assets/DeviceCenter/ex/C.png') },
-        { id: 6, name: '发动机叶片C-2', status: 'error', statusText: '故障', image: require('@/assets/DeviceCenter/ex/C.png') },
-        { id: 7, name: '发动机叶片C-3', status: 'normal', statusText: '正常', image: require('@/assets/DeviceCenter/ex/C.png') },
-        { id: 8, name: '发动机轴承C-1', status: 'normal', statusText: '正常', image: require('@/assets/DeviceCenter/ex/C-1.png') },
-        { id: 9, name: '发动机轴承C-2', status: 'warning', statusText: '预警', image: require('@/assets/DeviceCenter/ex/C-2.png') },
-        { id: 10, name: '发动机轴承C-3', status: 'normal', statusText: '正常', image: require('@/assets/DeviceCenter/ex/C-3.png') },
-      ],
+      devices: [],
       
       // 分页控制
       currentPage: 1,
       itemsPerPage: 9
     };
   },
+
+  // 预加载
+  mounted() {
+    this.fetchDeviceData();  //获取设备总数
+    this.loadDevices();      //获取设备列表
+    this.loadStatusSummary();  //获取设备状态统计
+    this.loadDefectiveDevices();  //获取缺陷设备
+    this.loadAlertStatusSummary(); //预警分布
+  },
+
+
   computed: {
     // 过滤并分页显示设备
     displayedDevices() {
@@ -227,6 +212,173 @@ export default {
     }
   },
   methods: {
+
+    //读取用户设备总数
+    async fetchDeviceData() {
+      try {
+        const res = await getUserDeviceCount();
+        if (res.data?.success) {
+          this.deviceCount = res.data.deviceCount || 0;  
+          this.measurePointCount = this.deviceCount * 8 ;
+        } 
+      } catch (error) {
+        console.warn('设备数据获取失败，使用默认值0');
+      }
+    },
+
+      // 加载设备列表
+      async loadDevices() {
+      try {
+        const res = await getUserDevices();
+        if (res.data?.success) {
+          this.devices = this.formatDevices(res.data.devices);
+        }
+      } catch (error) {
+        console.error('设备加载失败:', error);
+      }
+    },
+    // 格式化设备数据
+    formatDevices(devices) {
+      return devices.map(device => ({
+        id: device.deviceId,
+        name: device.name,
+        image: device.picture || this.defaultImage,
+        status: this.mapStatus(device.status),
+        statusText: this.getStatusText(device.status)
+      }));
+    },
+
+       // 状态转换
+       mapStatus(status) {
+      const statusMap = { 1: 'normal', 2: 'warning', 3: 'error' };
+      return statusMap[status] || 'unknown';
+    },
+
+    getStatusText(status) {
+      const textMap = { 1: '正常', 2: '中等', 3: '严重' };
+      return textMap[status] || '未知状态';
+    },
+
+
+   //获取用户设备状态列表
+   async loadStatusSummary() {
+      try {
+        const res = await getUserDeviceStatusSummary();
+        if (res.data?.success) {
+          this.updateStatusCounts(res.data.statusSummary);
+        }
+      } catch (error) {
+        console.error('状态数据加载失败:', error);
+      }
+    },
+    // 更新状态计数
+    updateStatusCounts(summaryData) {
+      // 创建状态映射表
+      const statusMap = new Map();
+      summaryData.forEach(item => {
+        statusMap.set(item.status, item.count);
+      });
+
+      // 更新设备状态数据
+      this.deviceStatus = this.deviceStatus.map(statusItem => ({
+        ...statusItem,
+        count: statusMap.get(statusItem.status) || 0
+      }));
+    },
+
+    // 获取缺陷设备
+    async loadDefectiveDevices() {
+      try {
+        const res = await getUserDefectiveDevices();
+        if (res.data?.success) {
+          this.defectDevices = this.formatDefectiveDevices(res.data.devices);
+        }
+      } catch (error) {
+        console.error('缺陷设备加载失败:', error);
+        this.defectDevices = []; // 清空数据避免显示错误
+      }
+    },
+        // 格式化缺陷设备数据
+        formatDefectiveDevices(devices) {
+      return devices.map(device => ({
+        id: device.deviceId,
+        name: device.name,
+        time: this.formatWarningTime(device.warningTime), // 格式化时间
+        level: this.mapDefectLevel(device.status),
+        levelText: this.getDefectLevelText(device.status)
+      }));
+    },
+
+    // 状态到缺陷等级的映射
+    mapDefectLevel(status) {
+      const levelMap = {
+        2: 2,   // 预警 -> 中等
+        3: 3     // 故障 -> 严重
+      };
+      return levelMap[status] || 1; // 默认轻微
+    },
+
+    getDefectLevelText(status) {
+      const textMap = {
+        2: '中等',
+        3: '严重'
+      };
+      return textMap[status] || '轻微';
+    },
+
+    // 时间格式化（示例：2022-08-11 -> 2022/08/11）
+    formatWarningTime(timeString) {
+      return timeString.replace(/-/g, '/');
+    },
+
+    async loadAlertStatusSummary() {
+      try {
+        const res = await getAlertStatusSummary();
+        if (res.data?.success) {
+          this.warningDistribution = this.formatAlertData(res.data.statusSummary);
+        }
+      } catch (error) {
+        console.error('预警状态加载失败:', error);
+        this.warningDistribution = []; // 清空数据避免显示错误
+      }
+    },
+
+    // 格式化预警数据
+    formatAlertData(statusData) {
+      // 计算总数
+      const total = statusData.reduce((sum, item) => sum + item.count, 0);
+      
+      return statusData.map(item => ({
+        status: item.status,
+        name: this.getAlertStatusText(item.status),
+        percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
+        color: this.getAlertStatusColor(item.status)
+      }));
+    },
+
+    // 预警状态文本映射
+    getAlertStatusText(status) {
+      const textMap = {
+        1: '一般',
+        2: '中等',
+        3: '严重'
+      };
+      return textMap[status] || '未知状态';
+    },
+
+    // 预警状态颜色映射
+    getAlertStatusColor(status) {
+      const colorMap = {
+        1: '#5856D6',
+        2: '#FF9500',
+        3: '#FF2D55'
+      };
+      return colorMap[status] || '#CCCCCC';
+    },
+
+
+
+
     // 搜索设备
     searchDevices() {
       this.currentPage = 1; // 重置到第一页
@@ -237,6 +389,14 @@ export default {
       if (page >= 1 && page <= this.totalPages) {
         this.currentPage = page;
       }
+    },
+
+    //跳转到监测中心
+    navigateToMonitor(deviceId) {
+    this.$router.push({
+      name: 'MonitorCenter',
+      params: { deviceId }
+    }); 
     }
   }
 }
@@ -571,6 +731,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%; /* 让卡片占满格子空间 */
+  cursor: pointer;
 }
 
 .device-card:hover {

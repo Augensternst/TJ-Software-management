@@ -215,7 +215,7 @@
 },
       
 
-// 注册函数对接新接口
+// 注册函数
 async handleRegister() {
   // 基础验证
   if (!this.registerUsername || !this.registerPassword) {

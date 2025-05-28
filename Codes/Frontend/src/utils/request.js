@@ -7,7 +7,7 @@ const request = axios.create({
 });
 
 
-// 添加请求拦截器,瓦塞林老木，甘霖娘诶寄卖
+// 添加请求拦截器
 request.interceptors.request.use(
   config => {
     // 从 localStorage 获取 token
