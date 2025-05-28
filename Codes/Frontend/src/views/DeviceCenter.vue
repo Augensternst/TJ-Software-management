@@ -93,7 +93,7 @@
         
         <!-- 设备卡片网格 -->
         <div class="device-grid" ref="deviceContainer">
-          <div class="device-card" v-for="(device, index) in displayedDevices" :key="index">
+          <div class="device-card" v-for="(device, index) in displayedDevices" :key="index" @click="navigateToMonitor(device.id)">
             <div class="center-device-image">
               <img :src="device.image || 'https://placehold.co/200x150?text=设备图片'" alt="设备图片">
             </div>
@@ -389,6 +389,14 @@ export default {
       if (page >= 1 && page <= this.totalPages) {
         this.currentPage = page;
       }
+    },
+
+    //跳转到监测中心
+    navigateToMonitor(deviceId) {
+    this.$router.push({
+      name: 'MonitorCenter',
+      params: { deviceId }
+    }); 
     }
   }
 }

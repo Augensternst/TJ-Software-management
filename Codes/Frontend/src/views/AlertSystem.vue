@@ -83,11 +83,6 @@
           <el-button type="primary" size="small" @click="handleConfirm(row)" class="confirm-button">
             确认
           </el-button>
-          <el-button link type="primary" @click="handleDelete(row)" class="delete-button">
-            <el-icon>
-              <Delete/>
-            </el-icon>
-          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -116,18 +111,14 @@
 </template>
 
 <script>
-import {Delete, Search} from '@element-plus/icons'
-import axios from 'axios'
+import {Search} from '@element-plus/icons'
+import {getUnconfirmedAlerts,exportAlerts} from '@/api/Alert'
 
-// 创建axios实例
-const api = axios.create({
-  baseURL: 'https://af1f2aee-0858-4e5f-8a9e-6e279126c69d.mock.pstmn.io/api',
-  timeout: 10000
-})
+
 
 export default {
   components: {
-    Delete, Search
+     Search
   },
   data() {
     return {
@@ -135,154 +126,8 @@ export default {
       startTime: '',
       endTime: '',
       selectedRows: [],
-      //我先造一些数据再alertList里面
 
-      alertList: [
-      {
-        id: 'ALT20250301-001',
-        device: '发动机叶片A1',
-        date: '2025-03-01',
-        time: '08:23:15',
-        severity: '一般提醒',
-        details: '叶片表面磨损超过预警阈值，建议下次维护时检查'
-      },
-      {
-        id: 'ALT20250301-002',
-        device: '发动机轴承C2',
-        date: '2025-03-01',
-        time: '09:45:22',
-        severity: '警告',
-        details: '轴承温度异常升高，需要立即检查冷却系统'
-      },
-      {
-        id: 'ALT20250302-001',
-        device: '压气机叶片A3',
-        date: '2025-03-02',
-        time: '10:15:33',
-        severity: '维修',
-        details: '叶片出现微裂纹，需要安排更换'
-      },
-      {
-        id: 'ALT20250302-002',
-        device: '涡轮叶片A2',
-        date: '2025-03-02',
-        time: '13:05:47',
-        severity: '一般提醒',
-        details: '热障涂层部分剥落，建议下次检修时处理'
-      },
-      {
-        id: 'ALT20250303-001',
-        device: '主轴承C1',
-        date: '2025-03-03',
-        time: '07:30:10',
-        severity: '警告',
-        details: '振动频率异常，可能存在内圈损伤'
-      },
-      {
-        id: 'ALT20250303-002',
-        device: '燃油控制器F1',
-        date: '2025-03-03',
-        time: '15:42:55',
-        severity: '维修',
-        details: '喷油嘴堵塞，需要清洁或更换'
-      },
-      {
-        id: 'ALT20250304-001',
-        device: '高压压气机叶片A1',
-        date: '2025-03-04',
-        time: '02:17:33',
-        severity: '警告',
-        details: '叶片前缘出现异物损伤，需要评估'
-      },
-      {
-        id: 'ALT20250304-002',
-        device: '低压轴承C3',
-        date: '2025-03-04',
-        time: '11:23:41',
-        severity: '一般提醒',
-        details: '润滑油压力略低，需要检查供油系统'
-      },
-      {
-        id: 'ALT20250305-001',
-        device: '燃烧室衬套B2',
-        date: '2025-03-05',
-        time: '09:58:02',
-        severity: '维修',
-        details: '衬套高温变形，需要更换'
-      },
-      {
-        id: 'ALT20250305-002',
-        device: '高压涡轮叶片A2',
-        date: '2025-03-05',
-        time: '14:35:26',
-        severity: '警告',
-        details: '叶片冷却孔部分堵塞，温度超标'
-      },
-      {
-        id: 'ALT20250306-001',
-        device: '低压涡轮轴承C1',
-        date: '2025-03-06',
-        time: '08:12:37',
-        severity: '一般提醒',
-        details: '轴承游隙接近上限，下次大修时关注'
-      },
-      {
-        id: 'ALT20250306-002',
-        device: '压气机进口导叶A4',
-        date: '2025-03-06',
-        time: '10:49:55',
-        severity: '警告',
-        details: '导叶调节机构反馈信号异常，需要校准'
-      },
-      {
-        id: 'ALT20250307-001',
-        device: '排气温度传感器T1',
-        date: '2025-03-07',
-        time: '07:15:22',
-        severity: '维修',
-        details: '传感器读数不稳定，需要更换'
-      },
-      {
-        id: 'ALT20250307-002',
-        device: '中压压气机叶片A3',
-        date: '2025-03-07',
-        time: '13:45:10',
-        severity: '一般提醒',
-        details: '叶片清洁度不足，可能影响效率'
-      },
-      {
-        id: 'ALT20250308-001',
-        device: '推力轴承C4',
-        date: '2025-03-08',
-        time: '09:30:45',
-        severity: '警告',
-        details: '轴向位移超出正常范围，需要检查'
-      },
-      {
-        id: 'ALT20250308-002',
-        device: '风扇叶片A1',
-        date: '2025-03-08',
-        time: '16:20:33',
-        severity: '维修',
-        details: '叶片平衡性异常，需要动平衡测试'
-      },
-      {
-        id: 'ALT20250309-001',
-        device: '附件传动齿轮G2',
-        date: '2025-03-09',
-        time: '08:55:17',
-        severity: '一般提醒',
-        details: '齿轮磨损超过30%，记录并监控'
-      },
-      {
-        id: 'ALT20250309-002',
-        device: '发动机控制单元ECU',
-        date: '2025-03-09',
-        time: '11:33:40',
-        severity: '警告',
-        details: '软件版本需要更新，存在已知缺陷'
-      }
-      ],
+      alertList: [],
       loading: false,
       // 分页相关
       currentPage: 1,
@@ -298,53 +143,119 @@ export default {
     async fetchAlertList() {
       this.loading = true
       try {
-       // 如果后端还未连接，使用本地分页
-    setTimeout(() => {
-      // 模拟后端的筛选逻辑
-      let filteredList = [...this.alertList]
-      
-      // 应用搜索条件
-      if (this.searchQuery) {
-        filteredList = filteredList.filter(item => 
-          item.device.toLowerCase().includes(this.searchQuery.toLowerCase())
-        )
-      }
-      
-      // 应用时间筛选
-      if (this.startTime) {
-        const startDate = new Date(this.startTime)
-        filteredList = filteredList.filter(item => {
-          const itemDate = new Date(`${item.date} ${item.time}`)
-          return itemDate >= startDate
-        })
-      }
-      
-      if (this.endTime) {
-        const endDate = new Date(this.endTime)
-        filteredList = filteredList.filter(item => {
-          const itemDate = new Date(`${item.date} ${item.time}`)
-          return itemDate <= endDate
-        })
-      }
-      
-      // 更新总数
-      this.total = filteredList.length
-      
-      // 分页处理
-      const start = (this.currentPage - 1) * this.pageSize
-      const end = start + this.pageSize
-      
-      // 返回当前页数据
-      this.alertList = filteredList.slice(start, end)
-      this.loading = false
-    }, 500) // 模拟网络延迟
-  } catch (error) {
-    console.error('获取警报列表失败:', error)
-    this.$message.error('获取警报列表失败，请稍后重试')
-    this.loading = false
+        const response = await getUnconfirmedAlerts();
+
+        if (response.data.success) {
+          // 转换数据格式
+          this.alertList = response.data.alerts.map(alert => ({
+            id: `ALT${alert.alertId}`,
+            device: alert.deviceName,
+            date: alert.alertTime.split(' ')[0],
+            time: alert.alertTime.split(' ')[1],
+            severity: this.mapStatusToSeverity(alert.status),
+            details: alert.alertDescription,
+            rawStatus: alert.status,
+            confirmed: alert.confirmed
+          }))
+          
+          this.total = response.data.total
+        }
+      } catch (error) {
+        console.error('获取警报列表失败:', error)
+        this.$message.error('获取警报列表失败，请稍后重试')
       } finally {
         this.loading = false
       }
+    },
+
+  // 导出报表
+async exportReport() {
+  try {
+    this.loading = true;
+    const response = await exportAlerts();
+
+    // 创建下载链接
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    // 从响应头获取文件名
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = 'alerts.xlsx';
+    
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename=(.+)/);
+      if (fileNameMatch.length > 1) {
+        fileName = fileNameMatch[1];
+      }
+    }
+
+    // 创建临时链接并触发下载
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    
+    // 清理资源
+    window.URL.revokeObjectURL(link.href);
+    link.remove();
+
+    this.$message.success('报表导出成功');
+  } catch (error) {
+    console.error('导出失败:', error);
+    let errorMessage = '导出失败，请稍后重试';
+    
+    // 处理特定错误
+    if (error.response) {
+      if (error.response.status === 401) {
+        errorMessage = '登录已过期，请重新登录';
+      } else if (error.response.status === 404) {
+        errorMessage = '导出接口不存在';
+      }
+    }
+    
+    this.$message.error(errorMessage);
+  } finally {
+    this.loading = false;
+  }
+},
+
+    // 状态映射
+    mapStatusToSeverity(status) {
+      const map = {
+        1: '一般',
+        2: '中等',
+        3: '严重'
+      }
+      return map[status] || '未知状态'
+    },
+
+    /* 
+    async confirmAlerts(alertIds) {
+      try {
+        const response = await api.post('/alerts/confirm', {
+          alertIds: alertIds.map(id => parseInt(id.replace('ALT', '')))
+        })
+        
+        if (response.data.success) {
+          return true
+        }
+      } catch (error) {
+        console.error('确认警报失败:', error)
+        throw new Error('确认操作失败')
+      }
+    },*/
+
+    // 修改分页处理
+    handleSizeChange(size) {
+      this.pageSize = size
+      this.currentPage = 1
+      this.fetchAlertList()
+    },
+
+    handleCurrentChange(page) {
+      this.currentPage = page
+      this.fetchAlertList()
     },
 
     // 处理搜索输入
@@ -359,17 +270,16 @@ export default {
       this.fetchAlertList()
     },
 
-    // 处理页码大小变化
-    handleSizeChange(size) {
+    /*handleSizeChange(size) {
       this.pageSize = size
       this.fetchAlertList()
-    },
+    },*/
 
     // 处理页码变化
-    handleCurrentChange(page) {
+    /*handleCurrentChange(page) {
       this.currentPage = page
       this.fetchAlertList()
-    },
+    },*/
 
     // 确认单个警报
     async handleConfirm(row) {
@@ -417,72 +327,12 @@ export default {
       }
     },
 
-    // API调用：确认警报（单个和批量共用）
+    /*
     async confirmAlerts(alertIds) {
       return api.post('/alerts/confirm', {alertIds})
-    },
+    },*/
 
-    // 删除警报
-    async handleDelete(row) {
-      try {
-        await this.$confirm('确定要删除该警报吗？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
 
-        await api.delete(`/alerts/${row.id}`)
-        this.$message.success('警报已删除')
-        await this.fetchAlertList() // 刷新列表
-      } catch (error) {
-        if (error !== 'cancel') {
-          console.error('删除警报失败:', error)
-          this.$message.error('删除警报失败，请稍后重试')
-        } else {
-          this.$message.info('已取消删除')
-        }
-      }
-    },
-
-    // 导出报表
-    async exportReport() {
-      try {
-        this.loading = true
-        const params = {
-          device: this.searchQuery || undefined,
-          startTime: this.startTime ? new Date(this.startTime).toISOString() : undefined,
-          endTime: this.endTime ? new Date(this.endTime).toISOString() : undefined
-        }
-
-        // 使用blob方式处理文件下载
-        const response = await api.get('/alerts/export', {
-          params,
-          responseType: 'blob'
-        })
-
-        // 创建下载链接
-        const url = window.URL.createObjectURL(new Blob([response.data]))
-        const link = document.createElement('a')
-        link.href = url
-
-        // 从响应头获取文件名，如果没有则使用默认名称
-        const filename = response.headers['content-disposition']
-            ? response.headers['content-disposition'].split('filename=')[1].replace(/"/g, '')
-            : '警报报表.xlsx'
-
-        link.setAttribute('download', filename)
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-
-        this.$message.success('报表导出成功')
-      } catch (error) {
-        console.error('导出报表失败:', error)
-        this.$message.error('导出报表失败，请稍后重试')
-      } finally {
-        this.loading = false
-      }
-    },
 
     // 选择行变化处理
     handleSelectionChange(selection) {
@@ -492,9 +342,9 @@ export default {
     // 严重性标签类型
     severityTagType(severity) {
       const types = {
-        '一般提醒': 'success',
-        '警告': 'danger',
-        '维修': 'warning'
+        '一般': 'success',
+        '中等': 'warning',
+        '严重': 'danger'
       }
       return types[severity] || 'info'
     },

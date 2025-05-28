@@ -73,6 +73,7 @@ import { ref, onMounted, computed } from 'vue';
 import { drawChart } from '@/utils/drawChart'; // 引入绘制图表的脚本
 import { drawHealthChart } from "@/utils/drawHealthChart";
 import { getDeviceHealthData, getDeviceCards,getDeviceEnergyData } from '@/api/monitorCenterApi'; // 引入 API
+import {useRoute} from 'vue-router'
 
 export default {
   name: 'MoniterCenter',
@@ -81,8 +82,10 @@ export default {
     const energyCanvas = ref(null);
     const healthCharts = ref({});
 
-    // todo: 这里是从其他页面传过来的数据（可能是 设备中心？？）
-    const deviceId=1;
+    //获取设备信息
+    const route = useRoute()
+    const deviceId = route.params.deviceId 
+    console.log('当前设备ID:', deviceId)
     const deviceName="航空发动机";
 
     //我先写一个固定的路径作为测试
@@ -177,8 +180,6 @@ export default {
 
     // 在组件挂载后获取数据并绘制图表
     onMounted(async () => {
-
-
       try {
         // 绘制图表
         if (healthyCanvas.value) {

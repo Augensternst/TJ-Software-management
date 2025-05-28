@@ -18,7 +18,7 @@
             :key="index"
             class="nav-item"
             :class="{ 'active': activeTab === item.id }"
-            @click="switchTab(item.id)"
+            @click="item.id !== 'monitor' && switchTab(item.id)"
           >
             <div class="icon-container">
               <img :src="item.icon" :alt="item.name" class="nav-icon" />
@@ -36,30 +36,17 @@
         <!-- 内容组件层 -->
         <div class="content-layer">
           <!-- 根据激活的选项卡显示不同内容 -->
-          <component :is="currentComponent"></component>
+          <router-view></router-view>
         </div>
       </main>
     </div>
   </template>
   
   <script>
-  // 导入各个页面组件
-  import DeviceCenter from '@/views/DeviceCenter.vue';
-  import MonitorCenter from '@/views/MonitorCenter.vue';
-  import DataSimulation from '@/views/DataSimulation.vue';
-  import AlertSystem from '@/views/AlertSystem.vue';
-  import ReportSystem from '@/views/ReportSystem.vue';
   import {getUserInfo} from '@/api/user'  //导入用户接口
   
   export default {
     name: 'MainLayout',
-    components: {
-      DeviceCenter,
-      MonitorCenter,
-      DataSimulation,
-      AlertSystem,
-      ReportSystem
-    },
     data() {
       return {
         // 用户信息
@@ -68,7 +55,6 @@
         
         // 激活的选项卡
         activeTab: 'devices',
-        
         // 导航项
         navItems: [
           {
@@ -81,7 +67,8 @@
             id: 'monitor',
             name: '监测中心',
             icon: require('@/assets/icons/monitor.svg'),
-            component: 'MonitorCenter'
+            component: 'MonitorCenter',
+            disableTabSwitch: true
           },
           {
             id: 'simulation',
@@ -114,22 +101,27 @@
 
 
     mounted() {
-      // 从路由参数获取初始选项卡
-      if (this.$route.params.tab && this.navItems.some(item => item.id === this.$route.params.tab)) {
-        this.activeTab = this.$route.params.tab;
-      }
       this.fetchUserInfo();
-
-      // 初始化宇宙粒子效果
       this.initCosmicParticles();
     },
+    
+
+
     methods: {
       // 切换选项卡
-      switchTab(tabId) {
-        this.activeTab = tabId;
-        // 可选：更新路由
-        this.$router.push({ name: 'main', params: { tab: tabId } });
-      },
+      switchTab(navId) {
+      const routeMap = {
+        devices: 'DeviceCenter',
+        monitor: 'MonitorCenter',
+        simulation: 'DataSimulation',
+        alert: 'AlertSystem',
+        report: 'ReportSystem'
+      };
+      
+      if (routeMap[navId]) {
+        this.$router.push({ name: routeMap[navId] });
+      }
+    },
 
       //初始化用户信息
       async fetchUserInfo() {
@@ -271,8 +263,20 @@
           }
         }, 100);
       }
+    },
+
+    watch: {
+  '$route'(to) {
+    // 查找第一个包含 navId 的路由记录
+    const matchedRoute = to.matched.find(r => r.meta.navId);
+    if (matchedRoute) {
+      this.activeTab = matchedRoute.meta.navId;
     }
+  }
+}
   };
+
+  
   </script>
   
   
