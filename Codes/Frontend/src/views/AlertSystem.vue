@@ -112,7 +112,7 @@
 
 <script>
 import {Search} from '@element-plus/icons'
-import {getUnconfirmedAlerts,exportAlerts} from '@/api/Alert'
+import {getUnconfirmedAlerts,exportAlerts,confirmAlerts} from '@/api/Alert'
 
 
 
@@ -148,7 +148,7 @@ export default {
         if (response.data.success) {
           // 转换数据格式
           this.alertList = response.data.alerts.map(alert => ({
-            id: `ALT${alert.alertId}`,
+            id: `${alert.alertId}`,
             device: alert.deviceName,
             date: alert.alertTime.split(' ')[0],
             time: alert.alertTime.split(' ')[1],
@@ -245,6 +245,7 @@ async exportReport() {
         throw new Error('确认操作失败')
       }
     },*/
+    
 
     // 修改分页处理
     handleSizeChange(size) {
@@ -281,51 +282,61 @@ async exportReport() {
       this.fetchAlertList()
     },*/
 
-    // 确认单个警报
-    async handleConfirm(row) {
-      try {
-        await this.$confirm('确认处理该警报吗？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
+ // 修改后的确认方法（单个）
+async handleConfirm(row) {
+  try {
+    console.log('当前确认的警报ID:', row.id);
+    
+    await this.$confirm('确认处理该警报吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
 
-        await this.confirmAlerts([row.id])
-        this.$message.success('警报已确认')
-        await this.fetchAlertList() // 刷新列表
-      } catch (error) {
-        if (error !== 'cancel') {
-          console.error('确认警报失败:', error)
-          this.$message.error('确认警报失败，请稍后重试')
-        }
-      }
-    },
+    // 直接使用原始ID，确保传递数组格式
+    const alertIds = [row.id]; 
 
-    // 批量确认警报
-    async handleBatchConfirm() {
-      if (this.selectedRows.length === 0) {
-        this.$message.warning('请至少选择一项警报进行确认')
-        return
-      }
 
-      try {
-        await this.$confirm(`确定要批量确认选中的 ${this.selectedRows.length} 项警报吗？`, '批量确认', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
+    await confirmAlerts(alertIds);
+    
+    this.$message.success('警报已确认');
+    await this.fetchAlertList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      this.$message.error(error.message || '确认失败');
+    }
+  }
+},
 
-        const alertIds = this.selectedRows.map(row => row.id)
-        await this.confirmAlerts(alertIds)
-        this.$message.success(`已确认 ${this.selectedRows.length} 项警报`)
-        await this.fetchAlertList() // 刷新列表
-      } catch (error) {
-        if (error !== 'cancel') {
-          console.error('批量确认警报失败:', error)
-          this.$message.error('批量确认警报失败，请稍后重试')
-        }
-      }
-    },
+// 修改后的批量确认方法
+async handleBatchConfirm() {
+  if (this.selectedRows.length === 0) {
+    this.$message.warning('请至少选择一项警报进行确认');
+    return;
+  }
+
+  try {
+    await this.$confirm(`确定批量确认选中的 ${this.selectedRows.length} 项警报？`, '批量确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    // 直接获取ID数组
+    const alertIds = this.selectedRows.map(row => row.id);
+
+
+    await confirmAlerts(alertIds);
+    
+    this.$message.success(`成功确认 ${alertIds.length} 项`);
+    this.$refs.alertTable.clearSelection();
+    await this.fetchAlertList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      this.$message.error(error.message || '批量确认失败');
+    }
+  }
+},
 
     /*
     async confirmAlerts(alertIds) {

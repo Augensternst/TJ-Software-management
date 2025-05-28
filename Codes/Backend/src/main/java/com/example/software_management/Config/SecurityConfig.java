@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 "/api/components/user/devices/defective",
                                 "/api/alerts/getUnconfirmedAlerts",
                                 "/api/alerts/exportAlertsToXLSX",
+                                "/api/alerts/confirmAlert",
                                 "/api/user/login",
                                 "/api-docs",
                                 "/swagger-ui/**",
