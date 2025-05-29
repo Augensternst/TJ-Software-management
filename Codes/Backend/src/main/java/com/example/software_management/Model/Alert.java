@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -12,8 +14,10 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class Alert implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
+    @Getter
     public enum Status {
         NORMAL(1),     // 正常
         WARNING(2),    // 警告
@@ -23,10 +27,6 @@ public class Alert implements Serializable {
 
         Status(int value) {
             this.value = value;
-        }
-
-        public int getValue() {
-            return value;
         }
 
         public static Status fromValue(int value) {

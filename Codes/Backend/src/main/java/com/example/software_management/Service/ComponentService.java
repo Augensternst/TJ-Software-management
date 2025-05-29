@@ -16,12 +16,7 @@ public interface ComponentService {
      */
     long getUserDeviceCount(Integer userId);
 
-    /**
-     * 获取当前用户的测点数（=设备数 × 8）
-     * @param userId 用户ID
-     * @return 测点数量
-     */
-    long getUserDataPointCount(Integer userId);
+
 
     /**
      * 获取当前用户的所有设备列表
@@ -47,28 +42,7 @@ public interface ComponentService {
      */
     List<ComponentDTO> getUserDefectiveDevices(Integer userId);
 
-    /**
-     * 获取设备健康数据（最近7天）
-     * @param deviceId 设备ID
-     * @return 健康数据列表
-     */
-    List<Double> getDeviceHealthData(Integer deviceId);
 
-    /**
-     * 获取设备能耗数据（最近7天）
-     * @param deviceId 设备ID
-     * @return 能耗数据列表和总成本
-     */
-    ReportDTO getDeviceEnergyData(Integer deviceId);
-
-    /**
-     * 获取设备指标卡片数据
-     * @param deviceId 设备ID
-     * @param page 页码
-     * @param pageSize 每页条数
-     * @return 指标卡片数据
-     */
-    ReportDTO getDeviceMetricCards(Integer deviceId, int page, int pageSize);
 
 
     /**

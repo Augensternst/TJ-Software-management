@@ -157,7 +157,7 @@ export default {
             rawStatus: alert.status,
             confirmed: alert.confirmed
           }))
-          
+
           this.total = response.data.total
         }
       } catch (error) {
@@ -175,14 +175,14 @@ async exportReport() {
     const response = await exportAlerts();
 
     // 创建下载链接
-    const blob = new Blob([response.data], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
-    
+
     // 从响应头获取文件名
     const contentDisposition = response.headers['content-disposition'];
     let fileName = 'alerts.xlsx';
-    
+
     if (contentDisposition) {
       const fileNameMatch = contentDisposition.match(/filename=(.+)/);
       if (fileNameMatch.length > 1) {
@@ -195,7 +195,7 @@ async exportReport() {
     link.href = window.URL.createObjectURL(blob);
     link.download = fileName;
     link.click();
-    
+
     // 清理资源
     window.URL.revokeObjectURL(link.href);
     link.remove();
@@ -204,7 +204,7 @@ async exportReport() {
   } catch (error) {
     console.error('导出失败:', error);
     let errorMessage = '导出失败，请稍后重试';
-    
+
     // 处理特定错误
     if (error.response) {
       if (error.response.status === 401) {
@@ -213,7 +213,7 @@ async exportReport() {
         errorMessage = '导出接口不存在';
       }
     }
-    
+
     this.$message.error(errorMessage);
   } finally {
     this.loading = false;
@@ -230,13 +230,13 @@ async exportReport() {
       return map[status] || '未知状态'
     },
 
-    /* 
+    /*
     async confirmAlerts(alertIds) {
       try {
         const response = await api.post('/alerts/confirm', {
           alertIds: alertIds.map(id => parseInt(id.replace('ALT', '')))
         })
-        
+
         if (response.data.success) {
           return true
         }
@@ -245,7 +245,7 @@ async exportReport() {
         throw new Error('确认操作失败')
       }
     },*/
-    
+
 
     // 修改分页处理
     handleSizeChange(size) {
@@ -286,7 +286,7 @@ async exportReport() {
 async handleConfirm(row) {
   try {
     console.log('当前确认的警报ID:', row.id);
-    
+
     await this.$confirm('确认处理该警报吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -294,11 +294,11 @@ async handleConfirm(row) {
     });
 
     // 直接使用原始ID，确保传递数组格式
-    const alertIds = [row.id]; 
+    const alertIds = [row.id];
 
 
     await confirmAlerts(alertIds);
-    
+
     this.$message.success('警报已确认');
     await this.fetchAlertList();
   } catch (error) {
@@ -327,7 +327,7 @@ async handleBatchConfirm() {
 
 
     await confirmAlerts(alertIds);
-    
+
     this.$message.success(`成功确认 ${alertIds.length} 项`);
     this.$refs.alertTable.clearSelection();
     await this.fetchAlertList();

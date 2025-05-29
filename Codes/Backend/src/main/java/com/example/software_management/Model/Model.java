@@ -24,7 +24,7 @@ public class Model {
     @NotNull
     private String name;
 
-    @Column(name = "modelfile")
+    @Column(name = "model_file")
     private String modelfile;
 
     @Column(name = "type")

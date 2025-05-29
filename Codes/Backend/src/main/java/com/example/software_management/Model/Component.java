@@ -7,7 +7,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "component")
@@ -31,8 +33,9 @@ public class Component {
     @Column(name = "pic")
     private String pic;
 
-    @Column(name = "warning_time")
+    @Column(name="warning_time")
     private LocalDateTime warningTime;
+
 
     // 与Data的一对多关系
     @OneToMany(mappedBy = "component", cascade = CascadeType.ALL)
@@ -57,13 +60,16 @@ public class Component {
     // 获取最新的健康指数
     @Transient
     public Double getHealthIndex() {
-        if (dataList == null || dataList.isEmpty()) {
+        if (forecasts == null || forecasts.isEmpty()) {
             return null;
         }
 
-        // Logic to calculate health index based on the latest data
-        // This is a placeholder - implement your health index calculation here
-        return 85.0;
+        // 从forecast中找到最新的forecast对应的healthIndex
+        return forecasts.stream()
+                .max(Comparator.comparing(Forecast::getForecastTime))
+                .filter(forecast -> forecast.getHealthIndex() != null)
+                .map(forecast -> forecast.getHealthIndex().doubleValue())
+                .orElse(null);
     }
 
     // 获取最新的能耗数据
@@ -73,9 +79,11 @@ public class Component {
             return null;
         }
 
-        // Logic to calculate energy consumption based on the latest data
-        // This is a placeholder - implement your energy calculation here
-        return 12.5;
+        // 从data表中找到最新的wf作为return
+        return dataList.stream()
+                .max(Comparator.comparing(Data::getTime))
+                .map(Data::getWf)
+                .orElse(null);
     }
 
     // 更新状态时自动设置警告时间

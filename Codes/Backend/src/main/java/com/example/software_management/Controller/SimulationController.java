@@ -22,30 +22,6 @@ public class SimulationController {
         this.simulationService = simulationService;
     }
 
-    /**
-     * 获取模型列表
-     * @param page 当前页码
-     * @param pageSize 每页数量
-     * @param searchQuery 搜索关键词
-     * @return 模型列表和总数
-     */
-    @GetMapping("/getModels")
-    public ResponseEntity<Map<String, Object>> getModels(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) String searchQuery) {
-
-        try {
-            Map<String, Object> response = simulationService.getModels(page, pageSize, searchQuery);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", e.getMessage());
-            System.out.println(e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
 
     /**
      * 获取模拟结果

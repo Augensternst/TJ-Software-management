@@ -160,7 +160,7 @@ def preprocess_data(file_path):
 
 
 def determine_damage_location(raw_data):
-    """根据各字段的值判断损伤位置"""
+    """根据各字段的值判断损伤位置，使用正常均值和标准差评估"""
     # 提取最后一行数据进行分析
     latest_data = raw_data.iloc[-1] if len(raw_data) > 0 else None
 
@@ -171,108 +171,81 @@ def determine_damage_location(raw_data):
     damages = []
     health_index = 100  # 初始健康指数为100
 
-    # 分析温度相关参数 (T24, T30, T48, T50, T40)
-    temp_params = {'T24': 563.0, 'T30': 1323.8, 'T48': 1642.8, 'T50': 1113.7, 'T40': 2542.4}
-    for param, nominal in temp_params.items():
-        if param in latest_data:
-            value = latest_data[param]
-            deviation = abs((value - nominal) / nominal) * 100
+    # 使用均值和标准差定义的正常范围
+    feature_means = {
+        'T24': 561.734307, 'T30': 1320.850085, 'T48': 1630.231993, 'T50': 1104.318060,
+        'P15': 11.409782, 'P2': 8.780057, 'P21': 11.583535, 'P24': 14.234296,
+        'Ps30': 215.225091, 'P40': 219.019148, 'P50': 8.548206, 'Nf': 1993.529530,
+        'Nc': 8211.029946, 'Wf': 2.300304, 'T40': 2527.272002, 'P30': 229.339422,
+        'P45': 40.602641, 'W21': 1794.094218, 'W22': 157.625671, 'W25': 157.625378,
+        'W31': 18.128248, 'W32': 10.876949, 'W48': 147.326124, 'W50': 155.995802,
+        'SmFan': 19.497370, 'SmLPC': 8.224322, 'SmHPC': 28.382235, 'phi': 38.184013,
+        'HPT_eff_mod': -0.000920, 'LPT_eff_mod': -0.000097, 'LPT_flow_mod': -0.000077
+    }
 
-            if deviation > 15:
-                damages.append(f"{param}异常（{value:.1f}），可能导致热区严重损伤")
-                health_index -= 25
-            elif deviation > 10:
-                damages.append(f"{param}异常（{value:.1f}），热区存在中度损伤")
-                health_index -= 15
-            elif deviation > 5:
-                damages.append(f"{param}偏高（{value:.1f}），热区存在轻微异常")
-                health_index -= 5
+    feature_stds = {
+        'T24': 19.197751, 'T30': 57.766587, 'T48': 101.321474, 'T50': 52.922060,
+        'P15': 2.312136, 'P2': 1.916450, 'P21': 2.347347, 'P24': 2.792789,
+        'Ps30': 45.830745, 'P40': 46.537956, 'P50': 2.034312, 'Nf': 141.865723,
+        'Nc': 192.280626, 'Wf': 0.581590, 'T40': 146.892788, 'P30': 48.730844,
+        'P45': 8.721765, 'W21': 314.120672, 'W22': 29.337796, 'W25': 29.337905,
+        'W31': 3.465540, 'W32': 2.079324, 'W48': 28.282172, 'W50': 29.895559,
+        'SmFan': 1.727403, 'SmLPC': 1.084494, 'SmHPC': 2.149762, 'phi': 2.312139,
+        'HPT_eff_mod': 0.000230, 'LPT_eff_mod': 0.000224, 'LPT_flow_mod': 0.000186
+    }
 
-    # 分析压力相关参数 (P15, P2, P21, P24, Ps30, P40, P50, P30, P45)
-    pressure_params = {'P15': 11.5, 'P2': 8.9, 'P21': 11.7, 'P24': 14.4,
-                       'Ps30': 217.8, 'P40': 221.6, 'P50': 8.7, 'P30': 232.0, 'P45': 41.2}
-    for param, nominal in pressure_params.items():
-        if param in latest_data:
-            value = latest_data[param]
-            deviation = abs((value - nominal) / nominal) * 100
+    # 按参数组评估
+    params_groups = {
+        'temperature': ['T24', 'T30', 'T48', 'T50', 'T40'],
+        'pressure': ['P15', 'P2', 'P21', 'P24', 'Ps30', 'P40', 'P50', 'P30', 'P45'],
+        'flow': ['W21', 'W22', 'W25', 'W31', 'W32', 'W48', 'W50'],
+        'efficiency': ['HPT_eff_mod', 'LPT_eff_mod', 'LPT_flow_mod'],
+        'speed': ['Nf', 'Nc'],
+        'fuel': ['Wf']
+    }
 
-            if deviation > 15:
-                damages.append(f"{param}异常（{value:.1f}），可能导致压力系统严重损坏")
-                health_index -= 20
-            elif deviation > 10:
-                damages.append(f"{param}异常（{value:.1f}），压力系统存在中度损伤")
-                health_index -= 12
-            elif deviation > 5:
-                damages.append(f"{param}偏离正常值（{value:.1f}），压力系统存在轻微异常")
-                health_index -= 5
+    group_descriptions = {
+        'temperature': '热区',
+        'pressure': '压力系统',
+        'flow': '流量通道',
+        'efficiency': '涡轮效率',
+        'speed': '轴承或转子系统',
+        'fuel': '燃烧室'
+    }
 
-    # 分析流量相关参数 (W21, W22, W25, W31, W32, W48, W50)
-    flow_params = {'W21': 1808.2, 'W22': 158.9, 'W25': 158.9,
-                   'W31': 18.3, 'W32': 11.0, 'W48': 148.6, 'W50': 157.4}
-    for param, nominal in flow_params.items():
-        if param in latest_data:
-            value = latest_data[param]
-            deviation = abs((value - nominal) / nominal) * 100
+    # 使用Z分数来评估参数异常程度
+    for group_name, params in params_groups.items():
+        for param in params:
+            if param in latest_data and param in feature_means and param in feature_stds:
+                value = latest_data[param]
+                mean = feature_means[param]
+                std = feature_stds[param]
 
-            if deviation > 15:
-                damages.append(f"{param}异常（{value:.1f}），流量通道可能存在严重堵塞或泄漏")
-                health_index -= 20
-            elif deviation > 10:
-                damages.append(f"{param}异常（{value:.1f}），流量通道存在中度异常")
-                health_index -= 10
-            elif deviation > 5:
-                damages.append(f"{param}偏离正常值（{value:.1f}），流量通道存在轻微异常")
-                health_index -= 3
+                # 计算Z分数 (标准化分数)
+                z_score = abs((value - mean) / std) if std > 0 else 0
 
-    # 分析效率修正系数 (HPT_eff_mod, LPT_eff_mod, LPT_flow_mod)
-    eff_params = {'HPT_eff_mod': -0.003, 'LPT_eff_mod': -0.002, 'LPT_flow_mod': -0.002}
-    for param, nominal in eff_params.items():
-        if param in latest_data:
-            value = latest_data[param]
-            deviation = abs(value - nominal)
+                if z_score > 3.0:  # 超过3个标准差，严重异常
+                    damages.append(f"{param}异常（{value:.1f}），可能导致{group_descriptions[group_name]}严重损伤")
+                    health_index -= 25 if group_name in ['temperature', 'speed'] else 20
+                elif z_score > 2.0:  # 超过2个标准差，中度异常
+                    damages.append(f"{param}异常（{value:.1f}），{group_descriptions[group_name]}存在中度损伤")
+                    health_index -= 15 if group_name in ['temperature', 'speed'] else 12
+                elif z_score > 1.5:  # 超过1.5个标准差，轻微异常
+                    damages.append(f"{param}偏离正常值（{value:.1f}），{group_descriptions[group_name]}存在轻微异常")
+                    health_index -= 5 if group_name in ['temperature', 'speed'] else 3
 
-            if deviation > 0.015:
-                damages.append(f"{param}严重偏离正常值（{value:.5f}），涡轮效率显著下降")
-                health_index -= 20
-            elif deviation > 0.01:
-                damages.append(f"{param}异常（{value:.5f}），涡轮效率中度下降")
-                health_index -= 15
-            elif deviation > 0.005:
-                damages.append(f"{param}偏离正常值（{value:.5f}），涡轮效率轻微下降")
-                health_index -= 5
-
-    # 分析转速相关参数 (Nf, Nc)
-    speed_params = {'Nf': 1998.1, 'Nc': 8218.6}
-    for param, nominal in speed_params.items():
-        if param in latest_data:
-            value = latest_data[param]
-            deviation = abs((value - nominal) / nominal) * 100
-
-            if deviation > 10:
-                damages.append(f"{param}异常（{value:.1f}），可能导致轴承或转子系统严重磨损")
-                health_index -= 25
-            elif deviation > 5:
-                damages.append(f"{param}异常（{value:.1f}），轴承或转子系统存在中度磨损")
-                health_index -= 15
-            elif deviation > 3:
-                damages.append(f"{param}偏离正常值（{value:.1f}），轴承或转子系统存在轻微磨损")
-                health_index -= 5
-
-    # 分析燃油消耗 (Wf)
-    if 'Wf' in latest_data:
-        wf_value = latest_data['Wf']
-        wf_nominal = 2.35
-        wf_deviation = abs((wf_value - wf_nominal) / wf_nominal) * 100
-
-        if wf_deviation > 20:
-            damages.append(f"燃油消耗异常（{wf_value:.3f}），燃烧室可能存在严重损伤")
-            health_index -= 20
-        elif wf_deviation > 10:
-            damages.append(f"燃油消耗异常（{wf_value:.3f}），燃烧室存在中度异常")
-            health_index -= 10
-        elif wf_deviation > 5:
-            damages.append(f"燃油消耗偏高（{wf_value:.3f}），燃烧室存在轻微异常")
-            health_index -= 5
+                # 为效率参数特殊处理
+                if group_name == 'efficiency':
+                    # 对于效率修正系数，使用更严格的标准，因为其标准差很小
+                    if z_score > 2.5:
+                        damages.append(f"{param}严重偏离正常值（{value:.5f}），涡轮效率显著下降")
+                        health_index -= 20
+                    elif z_score > 1.5:
+                        damages.append(f"{param}异常（{value:.5f}），涡轮效率中度下降")
+                        health_index -= 15
+                    elif z_score > 1.0:
+                        damages.append(f"{param}偏离正常值（{value:.5f}），涡轮效率轻微下降")
+                        health_index -= 5
 
     # 确保健康指数在0-100之间
     health_index = max(0, min(100, health_index))

@@ -30,17 +30,5 @@ public interface DataService {
      */
     ReportDTO getDeviceMetricCards(Integer deviceId, int page, int pageSize);
 
-    /**
-     * 获取设备的所有属性数据
-     * @param deviceId 设备ID
-     * @return 属性数据列表
-     */
-    List<DataDTO> getDeviceAttributes(Integer deviceId);
 
-    /**
-     * 获取设备的整体健康指数
-     * @param deviceId 设备ID
-     * @return 健康指数（0-100）
-     */
-    Double getDeviceOverallHealth(Integer deviceId);
 }

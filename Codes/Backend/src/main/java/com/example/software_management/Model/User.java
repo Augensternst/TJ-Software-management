@@ -51,21 +51,4 @@ public class User {
     @JsonIgnore
     private List<Alert> confirmedAlerts;
 
-    /**
-     * 获取用户拥有的设备数量
-     * @return 设备数量
-     */
-    @Transient
-    public int getDeviceCount() {
-        return components != null ? components.size() : 0;
-    }
-
-    /**
-     * 获取用户的测点数量（设备数 × 8）
-     * @return 测点数量
-     */
-    @Transient
-    public int getDataPointCount() {
-        return getDeviceCount() * 8;
-    }
 }

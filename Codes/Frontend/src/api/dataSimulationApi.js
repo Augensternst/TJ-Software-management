@@ -9,7 +9,7 @@ import request from '@/utils/request';
  */
 export function getModels(page, pageSize, searchQuery) {
   return request({
-    url: '/api/simulation/getModels',
+    url: '/api/model/getModels',
     method: 'get',
     params: {
       page,
@@ -28,9 +28,9 @@ export function getModels(page, pageSize, searchQuery) {
  */
 export function getDevices(page, pageSize, searchQuery) {
   return request({
-    url: '/api/components/user/devices', // 使用设备列表API
-    method: 'get',
-    params: {
+    url: '/api/devices', // 使用设备列表API
+    method: 'post',
+    data: {  // 改用data而不是params，将参数放在请求体中
       page,
       pageSize,
       searchQuery

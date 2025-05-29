@@ -28,22 +28,25 @@ public class AlertController {
 
     /**
      * 4.1 获取用户未确认的警报设备
-     * @param deviceName 设备名称（可选，模糊匹配）
-     * @param startTime 开始时间（可选）
-     * @param endTime 结束时间（可选）
-     * @param page 页码
-     * @param pageSize 每页条数
+     * @param requestBody 包含查询参数的请求体
      * @return 未确认的警报分页结果
      */
-    @GetMapping("/getUnconfirmedAlerts")
+    @PostMapping("/getUnconfirmedAlerts")
     public ResponseEntity<Map<String, Object>> getUnconfirmedAlerts(
-            @RequestParam(required = false) String deviceName,
-            @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestBody Map<String, Object> requestBody) {
 
         int userId = GetInfo.getCurrentUserId();
+
+        // 从请求体中获取查询参数
+        String deviceName = (String) requestBody.getOrDefault("deviceName", null);
+        String startTime = (String) requestBody.getOrDefault("startTime", null);
+        String endTime = (String) requestBody.getOrDefault("endTime", null);
+
+        // 获取分页参数，如果不存在使用默认值
+        int page = requestBody.containsKey("page") ?
+                Integer.parseInt(requestBody.get("page").toString()) : 1;
+        int pageSize = requestBody.containsKey("pageSize") ?
+                Integer.parseInt(requestBody.get("pageSize").toString()) : 10;
 
         Page<AlertDTO> alertPage = alertService.getUnconfirmedAlerts(
                 userId, deviceName, startTime, endTime, page, pageSize);
@@ -61,7 +64,7 @@ public class AlertController {
      * @param requestBody 包含警报ID列表的请求体
      * @return 确认结果
      */
-    @PostMapping("/confirmAlert")
+    @PutMapping("/confirmAlert")
     public ResponseEntity<Map<String, Object>> confirmAlerts(
             @RequestBody Map<String, List<Integer>> requestBody) {
 

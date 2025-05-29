@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/components")
+@RequestMapping("/api/devices")
 public class ComponentController {
 
     private final ComponentService componentService;
@@ -29,7 +29,7 @@ public class ComponentController {
      * 获取当前用户拥有的设备数
      * @return 设备数量
      */
-    @GetMapping("/user/devices/count")
+    @GetMapping("/count")
     public ResponseEntity<Map<String, Object>> getUserDeviceCount() {
         int userId = GetInfo.getCurrentUserId();
         long deviceCount = componentService.getUserDeviceCount(userId);
@@ -43,18 +43,24 @@ public class ComponentController {
 
     /**
      * 获取当前用户的所有设备列表
-     * @param searchQuery 搜索关键词
-     * @param page 页码
-     * @param pageSize 每页条数
+     * @param requestBody 包含搜索和分页参数的请求体
      * @return 设备列表和分页信息
      */
-    @GetMapping("/user/devices")
+    @PostMapping("")
     public ResponseEntity<Map<String, Object>> getUserDevices(
-            @RequestParam(required = false) String searchQuery,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestBody Map<String, Object> requestBody) {
 
         int userId = GetInfo.getCurrentUserId();
+
+        // 从请求体中提取参数
+        String searchQuery = (String) requestBody.getOrDefault("searchQuery", null);
+
+        // 获取分页参数，如果不存在使用默认值
+        int page = requestBody.containsKey("page") ?
+                Integer.parseInt(requestBody.get("page").toString()) : 1;
+        int pageSize = requestBody.containsKey("pageSize") ?
+                Integer.parseInt(requestBody.get("pageSize").toString()) : 10;
+
         Page<ComponentDTO> devicePage = componentService.getUserDevices(userId, searchQuery, page, pageSize);
 
         Map<String, Object> response = new HashMap<>();
@@ -76,7 +82,7 @@ public class ComponentController {
      * 获取用户所有设备的状态分布
      * @return 状态分布列表
      */
-    @GetMapping("/user/devices/status-summary")
+    @GetMapping("/status-summary")
     public ResponseEntity<Map<String, Object>> getUserDeviceStatusSummary() {
         int userId = GetInfo.getCurrentUserId();
         List<Map<String, Object>> statusSummary = componentService.getUserDeviceStatusSummary(userId);
@@ -92,7 +98,7 @@ public class ComponentController {
      * 获取当前用户所有有缺陷的设备（状态 ≠ 1）
      * @return 有缺陷的设备列表
      */
-    @GetMapping("/user/devices/defective")
+    @GetMapping("/defective")
     public ResponseEntity<Map<String, Object>> getUserDefectiveDevices() {
         int userId = GetInfo.getCurrentUserId();
         List<ComponentDTO> defectiveDevices = componentService.getUserDefectiveDevices(userId);
@@ -104,23 +110,12 @@ public class ComponentController {
         return ResponseEntity.ok(response);
     }
 
-
-    /**
-     * 获取预警状态分布（复用设备状态分布接口）
-     * @return 状态分布列表
-     */
-    @GetMapping("/alerts/status-summary")
-    public ResponseEntity<Map<String, Object>> getAlertStatusSummary() {
-        // 直接复用设备状态分布接口
-        return getUserDeviceStatusSummary();
-    }
-
     /**
      * 根据设备ID获取设备基本信息
      * @param deviceId 设备ID
      * @return 设备基本信息
      */
-    @GetMapping("/getdevice")
+    @GetMapping("/get-device")
     public ResponseEntity<Map<String, Object>> getDeviceById(@RequestParam Integer deviceId) {
         Map<String, Object> result = componentService.getDeviceById(deviceId);
         if ((Boolean) result.get("success")) {

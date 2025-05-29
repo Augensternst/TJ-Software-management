@@ -24,52 +24,6 @@ public interface DataRepository extends JpaRepository<Data, Integer> {
      */
     Optional<Data> findFirstByComponentIdOrderByTimeDesc(Integer componentId);
 
-    /**
-     * 根据组件ID查找最近7天的数据
-     * @param componentId 组件ID
-     * @param startDate 开始日期时间
-     * @return 数据列表
-     */
-    List<Data> findByComponentIdAndTimeGreaterThanEqualOrderByTimeAsc(
-            Integer componentId, LocalDateTime startDate);
-
-    /**
-     * 获取组件的健康指数数据（最近7天）
-     * @param componentId 组件ID
-     * @return 每日健康指数
-     */
-    @Query("SELECT FUNCTION('DATE', d.time) as date, AVG(d.hptEffMod + d.nf/30 + d.smFan + (100-d.t24) + (100-d.wf*3) + (100-d.t48/10) + d.nc/30 + d.smHPC)/8 as health " +
-            "FROM Data d WHERE d.component.id = :componentId " +
-            "AND d.time >= :startDate " +
-            "GROUP BY FUNCTION('DATE', d.time) " +
-            "ORDER BY FUNCTION('DATE', d.time)")
-    List<Object[]> getHealthIndexTrend(
-            @Param("componentId") Integer componentId,
-            @Param("startDate") LocalDateTime startDate);
-
-    /**
-     * 获取组件的能耗数据（最近7天）
-     * @param componentId 组件ID
-     * @return 每日能耗数据
-     */
-    @Query("SELECT FUNCTION('DATE', d.time) as date, AVG(d.wf) as energy " +
-            "FROM Data d WHERE d.component.id = :componentId " +
-            "AND d.time >= :startDate " +
-            "GROUP BY FUNCTION('DATE', d.time) " +
-            "ORDER BY FUNCTION('DATE', d.time)")
-    List<Object[]> getEnergyConsumptionTrend(
-            @Param("componentId") Integer componentId,
-            @Param("startDate") LocalDateTime startDate);
-
-    /**
-     * 获取组件当前的能耗成本
-     * @param componentId 组件ID
-     * @return 能耗成本
-     */
-    @Query("SELECT AVG(d.wf) * 0.75 FROM Data d " +
-            "WHERE d.component.id = :componentId " +
-            "AND FUNCTION('DATE', d.time) = CURRENT_DATE")
-    Double getCurrentEnergyCost(@Param("componentId") Integer componentId);
 
     /**
      * 获取组件的指标卡片数据
@@ -82,21 +36,6 @@ public interface DataRepository extends JpaRepository<Data, Integer> {
             @Param("componentId") Integer componentId,
             Pageable pageable);
 
-    /**
-     * 查询指定用户的所有设备数据
-     * @param userId 用户ID
-     * @return 数据列表
-     */
-    @Query("SELECT d FROM Data d JOIN d.component c WHERE c.user.id = :userId")
-    List<Data> findByUserId(@Param("userId") Integer userId);
-
-    /**
-     * 统计指定用户的所有设备数据总数
-     * @param userId 用户ID
-     * @return 数据总数
-     */
-    @Query("SELECT COUNT(d) FROM Data d JOIN d.component c WHERE c.user.id = :userId")
-    Long countByUserId(@Param("userId") Integer userId);
 
     /**
      * 获取组件的最新数据
@@ -155,41 +94,5 @@ public interface DataRepository extends JpaRepository<Data, Integer> {
         return attributes;
     }
 
-    /**
-     * 获取健康指数值列表（最近7天）
-     * @param componentId 组件ID
-     * @return 健康指数值列表
-     */
-    default List<Double> getHealthValues(Integer componentId) {
-        LocalDateTime startDate = LocalDateTime.now().minusDays(7);
-        List<Object[]> healthData = getHealthIndexTrend(componentId, startDate);
 
-        List<Double> values = new ArrayList<>();
-        for (Object[] row : healthData) {
-            if (row[1] != null) {
-                values.add(((Number) row[1]).doubleValue());
-            }
-        }
-
-        return values;
-    }
-
-    /**
-     * 获取能耗值列表（最近7天）
-     * @param componentId 组件ID
-     * @return 能耗值列表
-     */
-    default List<Double> getEnergyValues(Integer componentId) {
-        LocalDateTime startDate = LocalDateTime.now().minusDays(7);
-        List<Object[]> energyData = getEnergyConsumptionTrend(componentId, startDate);
-
-        List<Double> values = new ArrayList<>();
-        for (Object[] row : energyData) {
-            if (row[1] != null) {
-                values.add(((Number) row[1]).doubleValue());
-            }
-        }
-
-        return values;
-    }
 }

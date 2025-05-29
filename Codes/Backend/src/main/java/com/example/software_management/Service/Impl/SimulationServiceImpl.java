@@ -1,6 +1,5 @@
 package com.example.software_management.Service.Impl;
 
-import com.example.software_management.Model.Alert;
 import com.example.software_management.Model.Component;
 import com.example.software_management.Model.Data;
 import com.example.software_management.Model.Forecast;
@@ -14,7 +13,6 @@ import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,23 +21,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class SimulationServiceImpl implements SimulationService {
@@ -47,16 +40,17 @@ public class SimulationServiceImpl implements SimulationService {
     private final ModelRepository modelRepository;
     private final ComponentRepository componentRepository;
     private final ForecastRepository forecastRepository;
+    private final DataRepository dataRepository; // 新增DataRepository
     private final RestTemplate restTemplate;
 
     // 配置信息
-    @Value("${app.upload.dir:F:/AAAFourthGrade/SoftwareManagement/TJ-Software-management/Codes/Backend/src/main/java/com/example/software_management/upload_file/}")
+    @Value("${app.upload.dir:./upload_file/}")
     private String uploadDir;
 
-    @Value("${app.model.dir:F:/AAAFourthGrade/SoftwareManagement/期末代码/CNN-LSTM剩余寿命预测/CNN-LSTM21/training_model/CNN_LSTM/}")
+    @Value("${app.model.dir:F:\\AAAFourthGrade\\SoftwareManagement\\TJ-Software-management\\Codes\\AI\\training_model}")
     private String modelDir;
 
-    @Value("${app.image.dir:F:/AAAFourthGrade/SoftwareManagement/TJ-Software-management/Codes/Backend/src/main/java/com/example/software_management/image}")
+    @Value("${app.image.dir:./image}")
     private String imageDir;
 
     @Value("${app.flask.api.url:http://localhost:5000/predict}")
@@ -67,12 +61,13 @@ public class SimulationServiceImpl implements SimulationService {
             ModelRepository modelRepository,
             ComponentRepository componentRepository,
             ForecastRepository forecastRepository,
+            DataRepository dataRepository, // 新增DataRepository
             RestTemplate restTemplate) {
         this.modelRepository = modelRepository;
         this.componentRepository = componentRepository;
         this.forecastRepository = forecastRepository;
+        this.dataRepository = dataRepository; // 注入DataRepository
         this.restTemplate = restTemplate;
-
     }
 
     @PostConstruct
@@ -93,37 +88,7 @@ public class SimulationServiceImpl implements SimulationService {
         }
     }
 
-    @Override
-    public Map<String, Object> getModels(int page, int pageSize, String searchQuery) {
-        Map<String, Object> response = new HashMap<>();
 
-        // 创建分页请求
-        Pageable pageable = PageRequest.of(page - 1, pageSize);
-
-        // 根据是否有搜索词选择不同查询
-        Page<Model> modelsPage;
-        if (searchQuery == null || searchQuery.trim().isEmpty()) {
-            modelsPage = modelRepository.findAll(pageable);
-        } else {
-            modelsPage = modelRepository.findByNameContaining(searchQuery, pageable);
-        }
-
-        // 准备返回数据
-        List<Map<String, Object>> modelsList = new ArrayList<>();
-        for (Model model : modelsPage.getContent()) {
-            Map<String, Object> modelMap = new HashMap<>();
-            modelMap.put("id", model.getId());
-            modelMap.put("name", model.getName());
-            modelMap.put("type", model.getType());
-            modelsList.add(modelMap);
-        }
-
-        response.put("success", true);
-        response.put("total", modelsPage.getTotalElements());
-        response.put("models", modelsList);
-
-        return response;
-    }
 
     @Override
     public Map<String, Object> getSimulationResult(int modelId, int deviceId, MultipartFile file) throws Exception {
@@ -135,14 +100,17 @@ public class SimulationServiceImpl implements SimulationService {
         String fileName = saveUploadedFile(file);
         String filePath = Paths.get(uploadDir, fileName).toString();
 
-        // 3. 调用Flask API进行预测 - 传递文件路径
+        // 3. 读取表格数据并保存到Data表（新增功能）
+        saveDataFromFile(filePath, componentValidation.getComponent());
+
+        // 4. 调用Flask API进行预测 - 传递文件路径
         Map<String, Object> apiResponse = callFlaskApi(
                 modelValidation.getModelType(),
                 modelValidation.getModelPath(),
                 filePath
         );
 
-        // 4. 记录预测结果到forecast表
+        // 5. 记录预测结果到forecast表
         Forecast forecast = saveForecastResult(
                 componentValidation.getComponent(),
                 modelValidation.getModel(),
@@ -150,7 +118,7 @@ public class SimulationServiceImpl implements SimulationService {
                 componentValidation.getImageUrl()
         );
 
-        // 5. 构建响应
+        // 6. 构建响应
         return buildResponse(
                 componentValidation.getImageUrl(),
                 apiResponse,
@@ -162,7 +130,6 @@ public class SimulationServiceImpl implements SimulationService {
      * 验证模型是否存在且有效
      */
     private ModelValidationResult validateModel(int modelId) throws Exception {
-
         // 查询完整的模型对象
         Optional<Model> modelOptional = modelRepository.findById(modelId);
         if (modelOptional.isEmpty()) {
@@ -171,7 +138,7 @@ public class SimulationServiceImpl implements SimulationService {
         Model model = modelOptional.get();
 
         // 检查模型文件是否存在
-        Path modelPath = Paths.get(modelDir, model.getModelfile());
+        Path modelPath = Paths.get(modelDir, model.getType(), model.getModelfile());
         if (!Files.exists(modelPath)) {
             throw new Exception("模型文件不存在: " + modelPath);
         }
@@ -221,6 +188,94 @@ public class SimulationServiceImpl implements SimulationService {
         }
     }
 
+    private void saveDataFromFile(String filePath, Component component) throws Exception {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            // 读取表头行
+            String headerLine = reader.readLine();
+            if (headerLine == null) {
+                throw new Exception("表格文件为空");
+            }
+
+            // 使用逗号分隔符分割表头
+            String[] headers = headerLine.split(",");
+
+            // 创建列索引映射，同时转换为小写以便不区分大小写比较
+            Map<String, Integer> columnIndices = new HashMap<>();
+            for (int i = 0; i < headers.length; i++) {
+                String header = headers[i].trim().toLowerCase();
+                columnIndices.put(header, i);
+                System.out.println("列名: " + header + ", 索引: " + i); // 调试信息
+            }
+
+            // 读取数据行
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // 使用逗号分隔符分割数据
+                String[] values = line.split(",");
+
+                if (values.length < headers.length) {
+                    System.out.println("跳过不完整行: " + line);
+                    continue;
+                }
+
+                // 创建新的Data实体
+                Data data = new Data();
+                data.setComponent(component);
+                data.setTime(LocalDateTime.now());
+                data.setFile(filePath);
+
+                // 设置各属性值 - 使用小写键名查找
+                setDoubleValueIfExists(columnIndices, values, "hpt_eff_mod", data::setHptEffMod);
+                setDoubleValueIfExists(columnIndices, values, "nf", data::setNf);
+                setDoubleValueIfExists(columnIndices, values, "smfan", data::setSmFan);
+                setDoubleValueIfExists(columnIndices, values, "t24", data::setT24);
+                setDoubleValueIfExists(columnIndices, values, "wf", data::setWf);
+                setDoubleValueIfExists(columnIndices, values, "t48", data::setT48);
+                setDoubleValueIfExists(columnIndices, values, "nc", data::setNc);
+                setDoubleValueIfExists(columnIndices, values, "smhpc", data::setSmHPC);
+
+                // 打印设置的值，用于调试
+                System.out.println("设置的数据: " +
+                        "HPT_eff_mod=" + data.getHptEffMod() + ", " +
+                        "Nf=" + data.getNf() + ", " +
+                        "SmFan=" + data.getSmFan() + ", " +
+                        "T24=" + data.getT24() + ", " +
+                        "Wf=" + data.getWf() + ", " +
+                        "T48=" + data.getT48() + ", " +
+                        "Nc=" + data.getNc() + ", " +
+                        "SmHPC=" + data.getSmHPC());
+
+                // 保存数据
+                dataRepository.save(data);
+            }
+        } catch (IOException e) {
+            throw new Exception("读取表格文件失败: " + e.getMessage());
+        } catch (Exception e) {
+            throw new Exception("处理表格数据错误: " + e.getMessage() + " - " + e.getClass().getName());
+        }
+    }
+
+    private void setDoubleValueIfExists(Map<String, Integer> columnIndices, String[] values,
+                                        String columnName, java.util.function.Consumer<Double> setter) {
+        // 使用小写列名查找
+        if (columnIndices.containsKey(columnName) && columnIndices.get(columnName) < values.length) {
+            String value = values[columnIndices.get(columnName)].trim();
+            if (!value.isEmpty()) {
+                try {
+                    double doubleValue = Double.parseDouble(value);
+                    setter.accept(doubleValue);
+                    System.out.println("设置 " + columnName + " = " + doubleValue); // 调试信息
+                } catch (NumberFormatException e) {
+                    System.out.println("无法解析值: " + columnName + " = " + value);
+                }
+            }
+        } else {
+            System.out.println("找不到列: " + columnName + " 或索引超出范围");
+        }
+    }
+
+
+
     /**
      * 调用Flask API进行预测 - 使用文件路径而不是上传文件
      */
@@ -262,13 +317,12 @@ public class SimulationServiceImpl implements SimulationService {
     /**
      * 保存预测结果到数据库 - 适配Forecast表结构
      */
-    private Forecast saveForecastResult(Component component, Model model, Map<String, Object> apiResponse, String imageUrl) {
+    private Forecast saveForecastResult(Component component, com.example.software_management.Model.Model modelObj, Map<String, Object> apiResponse, String imageUrl) {
         // 创建新的预测记录
         Forecast forecast = new Forecast();
         forecast.setComponent(component);
-        forecast.setModel(model);
+        forecast.setModel(modelObj);
         forecast.setForecastTime(LocalDateTime.now());
-        forecast.setImageUrl(imageUrl);  // 设置图片URL
 
         // 设置从Python API获取的预测值
         if (apiResponse.containsKey("predicted_rul")) {
@@ -313,8 +367,6 @@ public class SimulationServiceImpl implements SimulationService {
         return response;
     }
 
-
-
     // 内部辅助类，用于封装验证结果
     @Getter
     private static class ModelValidationResult {
@@ -327,7 +379,6 @@ public class SimulationServiceImpl implements SimulationService {
             this.modelPath = modelPath;
             this.modelType = modelType;
         }
-
     }
 
     @Getter
@@ -339,6 +390,5 @@ public class SimulationServiceImpl implements SimulationService {
             this.component = component;
             this.imageUrl = imageUrl;
         }
-
     }
 }

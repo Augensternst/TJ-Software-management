@@ -4,15 +4,13 @@ import com.example.software_management.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@RequestMapping("/api/user")
 public class UserController {
     private final UserService userService;
 
@@ -21,12 +19,12 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/user/account/info/")
+    @GetMapping("/account/info/")
     public Map<String, String> getInfo() {
         return userService.getInfo();
     }
 
-    @PostMapping("/user/account/token/")
+    @PostMapping("/account/token/")
     public ResponseEntity<Map<String, String>> getToken(@RequestParam Map<String, String> map) {
         String username = map.get("username");
         String password = map.get("password");
@@ -42,7 +40,7 @@ public class UserController {
         }
     }
 
-    @PostMapping("/user/account/register/")
+    @PostMapping("/account/register/")
     public ResponseEntity<Map<String, String>> register(@RequestParam Map<String, String> map) {
         String username = map.get("username");
         String password = map.get("password");

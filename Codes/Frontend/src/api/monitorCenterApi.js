@@ -49,7 +49,7 @@ export function getDeviceMetricCards(deviceId, page, pageSize) {
  */
 export function getDeviceById(deviceId) {
   return request({
-    url: '/api/components/getdevice',
+    url: '/api/devices/get-device',
     method: 'get',
     params: {
       deviceId

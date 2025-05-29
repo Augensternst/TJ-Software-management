@@ -1,27 +1,35 @@
 import request from '@/utils/request';
 
+// 获取未确认警报列表（添加筛选参数）
+export function getUnconfirmedAlerts(params) {
+  return request({
+    url: '/api/alerts/getUnconfirmedAlerts',
+    method: 'post',
+    data: params || {
+      page: 1,
+      pageSize: 10
+    }
+  });
+}
 
-//获取未确认的警报数
-export function getUnconfirmedAlerts() {
-    return request.get('/api/alerts/getUnconfirmedAlerts');
-  }
-
-
-// 导出报表
-export function exportAlerts() {
-  return request.get('/api/alerts/exportAlertsToXLSX', {
-    responseType: 'blob', // 必须指定响应类型为blob
-    timeout: 30000 // 适当延长超时时间
+// 导出报表（添加筛选参数）
+export function exportAlerts(params) {
+  return request({
+    url: '/api/alerts/exportAlertsToXLSX',
+    method: 'get',
+    params: params, // 添加筛选参数
+    responseType: 'blob',
+    timeout: 30000
   });
 }
 
 // 确认警报
 export function confirmAlerts(alertIds) {
-  return request.post('/api/alerts/confirmAlert', {
-    alertIds: alertIds.map(id => Number(id)) // 确保转换为数字
+  return request.put('/api/alerts/confirmAlert', {
+    alertIds: alertIds.map(id => Number(id))
   }, {
     headers: {
-      'Content-Type': 'application/json' // 明确指定JSON格式
+      'Content-Type': 'application/json'
     }
-  })
+  });
 }

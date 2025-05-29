@@ -162,6 +162,7 @@ export default {
       try {
         const response = await getDeviceMetricCards(deviceId, currentPage.value, itemsPerPage);
         if (response.data.success) {
+          console.log("设备卡片信息",response);
           items.value = response.data.items;
           totalPages.value = response.data.totalPages;
         }

@@ -2,7 +2,6 @@ package com.example.software_management.Service.Impl;
 
 import com.example.software_management.DTO.DataDTO;
 import com.example.software_management.DTO.ReportDTO;
-import com.example.software_management.Model.Alert;
 import com.example.software_management.Model.Component;
 import com.example.software_management.Model.Data;
 import com.example.software_management.Repository.AlertRepository;
@@ -14,17 +13,14 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ReportServiceImpl implements ReportService {
@@ -32,18 +28,15 @@ public class ReportServiceImpl implements ReportService {
     private final AlertRepository alertRepository;
     private final ComponentRepository componentRepository;
     private final DataRepository dataRepository;
-    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public ReportServiceImpl(
             AlertRepository alertRepository,
             ComponentRepository componentRepository,
-            DataRepository dataRepository,
-            JdbcTemplate jdbcTemplate) {
+            DataRepository dataRepository) {
         this.alertRepository = alertRepository;
         this.componentRepository = componentRepository;
         this.dataRepository = dataRepository;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -53,25 +46,17 @@ public class ReportServiceImpl implements ReportService {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().plusDays(1).atStartOfDay().minusSeconds(1);
 
-        // 使用JDBC模板进行统计查询，提高性能
-        String sql = "SELECT a.is_confirmed, COUNT(*) as count " +
-                "FROM alert a " +
-                "JOIN component c ON a.component_id = c.id " +
-                "WHERE c.user_id = ? " +
-                "AND a.alert_time BETWEEN ? AND ? " +
-                "GROUP BY a.is_confirmed";
-
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                sql, userId, startOfDay, endOfDay);
+        // 使用Repository方法获取统计数据
+        List<Object[]> results = alertRepository.getAlertStatsByTimeRange(userId, startOfDay, endOfDay);
 
         // 初始化统计数据
         long confirmedToday = 0;
         long unconfirmedToday = 0;
 
         // 处理查询结果
-        for (Map<String, Object> row : rows) {
-            boolean isConfirmed = (boolean) row.get("is_confirmed");
-            long count = ((Number) row.get("count")).longValue();
+        for (Object[] result : results) {
+            boolean isConfirmed = (boolean) result[0];
+            long count = ((Number) result[1]).longValue();
 
             if (isConfirmed) {
                 confirmedToday = count;
@@ -90,23 +75,17 @@ public class ReportServiceImpl implements ReportService {
     public Map<String, Long> getAllAlertStats(Integer userId) {
         Map<String, Long> stats = new HashMap<>();
 
-        // 使用JDBC模板进行统计查询，提高性能
-        String sql = "SELECT a.is_confirmed, COUNT(*) as count " +
-                "FROM alert a " +
-                "JOIN component c ON a.component_id = c.id " +
-                "WHERE c.user_id = ? " +
-                "GROUP BY a.is_confirmed";
-
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, userId);
+        // 使用Repository方法获取统计数据
+        List<Object[]> results = alertRepository.getAllAlertStats(userId);
 
         // 初始化统计数据
         long confirmed = 0;
         long unconfirmed = 0;
 
         // 处理查询结果
-        for (Map<String, Object> row : rows) {
-            boolean isConfirmed = (boolean) row.get("is_confirmed");
-            long count = ((Number) row.get("count")).longValue();
+        for (Object[] result : results) {
+            boolean isConfirmed = (boolean) result[0];
+            long count = ((Number) result[1]).longValue();
 
             if (isConfirmed) {
                 confirmed = count;
@@ -135,25 +114,16 @@ public class ReportServiceImpl implements ReportService {
         LocalDateTime startDateTime = startOfWeek.atStartOfDay();
         LocalDateTime endDateTime = endOfWeek.plusDays(1).atStartOfDay().minusSeconds(1);
 
-        // 使用JDBC模板查询每天的警报统计
-        String dailySql = "SELECT DATE(a.alert_time) as date, a.is_confirmed, COUNT(*) as count " +
-                "FROM alert a " +
-                "JOIN component c ON a.component_id = c.id " +
-                "WHERE c.user_id = ? " +
-                "AND a.alert_time BETWEEN ? AND ? " +
-                "GROUP BY DATE(a.alert_time), a.is_confirmed " +
-                "ORDER BY DATE(a.alert_time)";
-
-        List<Map<String, Object>> dailyRows = jdbcTemplate.queryForList(
-                dailySql, userId, startDateTime, endDateTime);
+        // 使用Repository方法获取每日统计数据
+        List<Object[]> dailyResults = alertRepository.getDailyAlertStats(userId, startDateTime, endDateTime);
 
         // 处理每日统计数据
         Map<LocalDate, Map<Boolean, Long>> dailyStats = new HashMap<>();
 
-        for (Map<String, Object> row : dailyRows) {
-            LocalDate date = ((java.sql.Date) row.get("date")).toLocalDate();
-            boolean isConfirmed = (boolean) row.get("is_confirmed");
-            long count = ((Number) row.get("count")).longValue();
+        for (Object[] result : dailyResults) {
+            LocalDate date = ((java.sql.Date) result[0]).toLocalDate();
+            boolean isConfirmed = (boolean) result[1];
+            long count = ((Number) result[2]).longValue();
 
             dailyStats.computeIfAbsent(date, k -> new HashMap<>())
                     .put(isConfirmed, count);
@@ -195,7 +165,7 @@ public class ReportServiceImpl implements ReportService {
         // 获取设备的最新数据
         Optional<Data> latestDataOpt = dataRepository.findFirstByComponentIdOrderByTimeDesc(deviceId);
 
-        if (!latestDataOpt.isPresent()) {
+        if (latestDataOpt.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -243,14 +213,14 @@ public class ReportServiceImpl implements ReportService {
         try {
             // 获取设备信息
             Optional<Component> componentOpt = componentRepository.findById(deviceId);
-            if (!componentOpt.isPresent()) {
+            if (componentOpt.isEmpty()) {
                 throw new RuntimeException("设备不存在");
             }
             Component component = componentOpt.get();
 
             // 获取设备的最新数据
             Optional<Data> latestDataOpt = dataRepository.findFirstByComponentIdOrderByTimeDesc(deviceId);
-            if (!latestDataOpt.isPresent()) {
+            if (latestDataOpt.isEmpty()) {
                 throw new RuntimeException("设备数据不存在");
             }
             Data latestData = latestDataOpt.get();

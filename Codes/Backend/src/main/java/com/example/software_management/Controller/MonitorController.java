@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/monitor")
 public class MonitorController {
 
     private final DataService dataService;
@@ -28,7 +28,7 @@ public class MonitorController {
      * @param deviceId 设备ID
      * @return 健康数据列表
      */
-    @GetMapping("/monitor/{deviceId}/health")
+    @GetMapping("/{deviceId}/health")
     public ResponseEntity<Map<String, Object>> getDeviceHealthData(@PathVariable Integer deviceId) {
         // 可以在这里添加权限检查，确保当前用户有权访问此设备
         // int userId = GetInfo.getCurrentUserId();
@@ -47,7 +47,7 @@ public class MonitorController {
      * @param deviceId 设备ID
      * @return 能耗数据列表和当日成本
      */
-    @GetMapping("/monitor/{deviceId}/energy")
+    @GetMapping("/{deviceId}/energy")
     public ResponseEntity<Map<String, Object>> getDeviceEnergyData(@PathVariable Integer deviceId) {
         // 可以在这里添加权限检查，确保当前用户有权访问此设备
         // int userId = GetInfo.getCurrentUserId();
@@ -69,7 +69,7 @@ public class MonitorController {
      * @param pageSize 每页条数
      * @return 指标卡片数据
      */
-    @GetMapping("/monitor/{deviceId}/cards")
+    @GetMapping("/{deviceId}/cards")
     public ResponseEntity<Map<String, Object>> getDeviceMetricCards(
             @PathVariable Integer deviceId,
             @RequestParam(defaultValue = "1") int page,

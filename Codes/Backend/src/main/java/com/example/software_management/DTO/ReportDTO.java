@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ReportDTO {
     // For status summary
     private List<Map<String, Object>> statusSummary;
@@ -42,8 +42,12 @@ public class ReportDTO {
         private long unconfirmed;
     }
 
-    // For health and energy data
+
     private List<Double> values;
+
+
+    private Map<String, Double> dateValues;
+
     private Double energyCost;
 
     // For metric cards

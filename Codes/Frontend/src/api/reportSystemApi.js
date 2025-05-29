@@ -39,8 +39,12 @@ export function getWeeklyAlertStats() {
  */
 export function getDeviceList() {
   return request({
-    url: '/api/components/user/devices',
-    method: 'get'
+    url: '/api/devices',
+    method: 'post',
+    data: {
+      page: 1,
+      pageSize: 1
+    }
   });
 }
 
@@ -78,7 +82,7 @@ export function exportDeviceAttributes(deviceId) {
  */
 export function getDeviceById(deviceId) {
   return request({
-    url: '/api/components/getdevice',
+    url: '/api/devices/get-device',
     method: 'get',
     params: {
       deviceId

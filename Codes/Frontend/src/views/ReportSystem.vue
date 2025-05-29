@@ -113,7 +113,6 @@ import {
   getAllAlertStats,
   getWeeklyAlertStats,
   getDeviceList,
-  getDeviceAttributes,
   exportDeviceAttributes,
   getDeviceById
 } from '@/api/reportSystemApi';
@@ -303,19 +302,6 @@ export default {
       }
     },
 
-    // 获取设备属性
-    async fetchDeviceAttributes(deviceId) {
-      try {
-        const response = await getDeviceAttributes(deviceId);
-        console.log('设备属性数据:', response);
-        if (response.data.success) {
-          this.deviceData = response.data.attributes;
-        }
-      } catch (error) {
-        console.error('获取设备属性失败:', error);
-        this.deviceData = [];
-      }
-    },
 
     // 获取设备详细信息
     async fetchDeviceDetails(deviceId) {
@@ -341,8 +327,7 @@ export default {
       this.showDeviceSelector = false;
       console.log("当前设备列表",device);
 
-      // 获取设备属性和详细信息
-      await this.fetchDeviceAttributes(device.id);
+
       await this.fetchDeviceDetails(device.id);
     },
 
