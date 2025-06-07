@@ -10,7 +10,7 @@
             <span class="worksans-font" style="text-align: center; align-self: center; padding-left: 5%;">{{ selections.model.message }}</span>
             <!-- 按钮 -->
             <SelectDropdown
-              :placeholder="'搜索模型'"
+              :placeholder="'搜索标准数据'"
               :items="selections.model.items"
               :current-page="selections.model.currentPage"
               :total-pages="selections.model.totalPages"
@@ -106,10 +106,10 @@ export default {
         model: {
           items: [],
           selected: null,
-          message: "选择模型",
+          message: "选择标准数据",
           searchQuery: '',
           currentPage: 1,
-          pageSize: 5,
+          pageSize: 3,
           totalPages: 1,
         },
         device: {
@@ -118,7 +118,7 @@ export default {
           message: "选择设备",
           searchQuery: '',
           currentPage: 1,
-          pageSize: 5,
+          pageSize: 3,
           totalPages: 1,
         },
       },
@@ -195,6 +195,7 @@ export default {
 
         // 安全处理响应数据
         if (response && response.data && response.data.success) {
+          console.log(response.data)
           if (Array.isArray(response.data.devices)) {
             selection.items = response.data.devices.map(item => ({
               id: item.deviceId || item.id,
@@ -202,8 +203,9 @@ export default {
             }));
 
             // 计算总页数
-            if (response.data.total) {
-              selection.totalPages = Math.ceil(response.data.total / selection.pageSize);
+            if (response.data.pagination.totalPages) {
+              selection.totalPages = response.data.pagination.totalPages;
+
             } else {
               selection.totalPages = Math.ceil(response.data.devices.length / selection.pageSize);
             }

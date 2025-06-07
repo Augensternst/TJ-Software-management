@@ -25,6 +25,17 @@ public class ModelServiceImpl implements ModelService {
     public Map<String, Object> getModels(int page, int pageSize, String searchQuery) {
         Map<String, Object> response = new HashMap<>();
 
+        // 验证页码和每页大小参数
+        if (page < 1) {
+            page = 1; // 如果页码小于1，则使用默认值1
+        }
+
+        if (pageSize < 1) {
+            pageSize = 10; // 如果每页大小小于1，则使用默认值10
+        } else if (pageSize > 50) {
+            pageSize = 50; // 如果每页大小大于50，则使用最大值50
+        }
+
         // 创建分页请求
         Pageable pageable = PageRequest.of(page - 1, pageSize);
 

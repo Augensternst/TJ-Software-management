@@ -31,15 +31,6 @@ public interface AlertRepository extends JpaRepository<Alert, Integer> {
      * @param pageable 分页参数
      * @return 警报分页结果
      */
-    /**
-     * 查询用户未确认的警报设备
-     * @param userId 用户ID
-     * @param deviceName 设备名称（可选，模糊匹配）
-     * @param startTime 开始时间（可选）
-     * @param endTime 结束时间（可选）
-     * @param pageable 分页参数
-     * @return 警报分页结果
-     */
     @Query("SELECT a FROM Alert a JOIN a.component c WHERE c.user.id = :userId " +
             "AND a.isConfirmed = false " +
             "AND (:deviceName IS NULL OR c.name LIKE CONCAT('%', :deviceName, '%')) " +
