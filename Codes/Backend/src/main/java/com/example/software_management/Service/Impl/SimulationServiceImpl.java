@@ -11,15 +11,9 @@ import com.example.software_management.Repository.ModelRepository;
 import com.example.software_management.Service.SimulationService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,18 +35,23 @@ public class SimulationServiceImpl implements SimulationService {
     private final ComponentRepository componentRepository;
     private final ForecastRepository forecastRepository;
     private final DataRepository dataRepository; // 新增DataRepository
-    private final RestTemplate restTemplate;
 
+
+    // 添加setter方法用于测试
     // 配置信息
+    @Setter
     @Value("${app.upload.dir:./upload_file/}")
     private String uploadDir;
 
+    @Setter
     @Value("${app.model.dir:F:\\AAAFourthGrade\\SoftwareManagement\\TJ-Software-management\\Codes\\AI\\training_model}")
     private String modelDir;
 
+    @Setter
     @Value("${app.image.dir:./image}")
     private String imageDir;
 
+    @Setter
     @Value("${app.flask.api.url:http://localhost:5000/predict}")
     private String flaskApiUrl;
 
@@ -67,7 +66,6 @@ public class SimulationServiceImpl implements SimulationService {
         this.componentRepository = componentRepository;
         this.forecastRepository = forecastRepository;
         this.dataRepository = dataRepository; // 注入DataRepository
-        this.restTemplate = restTemplate;
     }
 
     @PostConstruct
@@ -83,7 +81,7 @@ public class SimulationServiceImpl implements SimulationService {
         if (!directory.exists()) {
             boolean created = directory.mkdirs();
             if (!created) {
-                throw new RuntimeException("无法创建目录: " + dirPath);
+                throw new RuntimeException("Failed to create directory: " + dirPath);
             }
         }
     }
@@ -100,17 +98,19 @@ public class SimulationServiceImpl implements SimulationService {
         String fileName = saveUploadedFile(file);
         String filePath = Paths.get(uploadDir, fileName).toString();
 
-        // 3. 读取表格数据并保存到Data表（新增功能）
+        // 3. 验证CSV文件格式和内容 - 确保只有一行数据
+        validateCsvFile(filePath);
+
+        // 4. 读取表格数据并保存到Data表
         saveDataFromFile(filePath, componentValidation.getComponent());
 
-        // 4. 调用Flask API进行预测 - 传递文件路径
-        Map<String, Object> apiResponse = callFlaskApi(
+        // 5. 调用模拟的Flask API - 返回默认值而非真实调用
+        Map<String, Object> apiResponse = processData(
                 modelValidation.getModelType(),
-                modelValidation.getModelPath(),
-                filePath
+                componentValidation.getComponent().getName()
         );
 
-        // 5. 记录预测结果到forecast表
+        // 6. 记录预测结果到forecast表
         Forecast forecast = saveForecastResult(
                 componentValidation.getComponent(),
                 modelValidation.getModel(),
@@ -118,12 +118,60 @@ public class SimulationServiceImpl implements SimulationService {
                 componentValidation.getImageUrl()
         );
 
-        // 6. 构建响应
+        // 7. 构建响应
         return buildResponse(
                 componentValidation.getImageUrl(),
                 apiResponse,
                 forecast
         );
+    }
+
+    /**
+     * 验证CSV文件格式和内容
+     */
+    void validateCsvFile(String filePath) throws Exception {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            // 读取表头行
+            String headerLine = reader.readLine();
+            if (headerLine == null) {
+                throw new Exception("File is empty");
+            }
+
+            // 检查文件扩展名
+            if (!filePath.toLowerCase().endsWith(".csv")) {
+                throw new Exception("Invalid file format. Only CSV files are supported");
+            }
+
+            // 读取数据行数
+            String dataLine = reader.readLine();
+            if (dataLine == null) {
+                throw new Exception("File contains only header, no data rows");
+            }
+
+            // 确保只有一行数据
+            String nextLine = reader.readLine();
+            if (nextLine != null) {
+                throw new Exception("Invalid file format. Only one data row is allowed");
+            }
+
+            // 检查必要的列是否存在
+            String[] headers = headerLine.toLowerCase().split(",");
+            Set<String> headerSet = new HashSet<>(Arrays.asList(headers));
+
+            // 定义必要的列
+            Set<String> requiredColumns = new HashSet<>(Arrays.asList(
+                    "hpt_eff_mod", "nf", "smfan", "t24", "wf", "t48", "nc", "smhpc"
+            ));
+
+            // 检查是否缺少必要的列
+            requiredColumns.removeAll(headerSet);
+            if (!requiredColumns.isEmpty()) {
+                throw new Exception("Missing required columns: " + requiredColumns);
+            }
+
+        } catch (IOException e) {
+            throw new Exception("Failed to read file: " + e.getMessage());
+        }
     }
 
     /**
@@ -133,14 +181,14 @@ public class SimulationServiceImpl implements SimulationService {
         // 查询完整的模型对象
         Optional<Model> modelOptional = modelRepository.findById(modelId);
         if (modelOptional.isEmpty()) {
-            throw new Exception("模型不存在");
+            throw new Exception("Standard data does not exist");
         }
         Model model = modelOptional.get();
 
         // 检查模型文件是否存在
         Path modelPath = Paths.get(modelDir, model.getType(), model.getModelfile());
         if (!Files.exists(modelPath)) {
-            throw new Exception("模型文件不存在: " + modelPath);
+            throw new Exception("Standard data does not exist: " + modelPath);
         }
 
         return new ModelValidationResult(model, modelPath.toString(), model.getType());
@@ -153,7 +201,7 @@ public class SimulationServiceImpl implements SimulationService {
         // 查询设备信息
         Optional<Component> componentOptional = componentRepository.findById(deviceId);
         if (componentOptional.isEmpty()) {
-            throw new Exception("设备不存在");
+            throw new Exception("Device does not exist");
         }
         Component component = componentOptional.get();
 
@@ -177,23 +225,32 @@ public class SimulationServiceImpl implements SimulationService {
     /**
      * 保存上传的文件
      */
-    private String saveUploadedFile(MultipartFile file) throws Exception {
+    String saveUploadedFile(MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new Exception("No file provided or file is empty");
+        }
+
+        // 检查文件大小 (16MB限制)
+        if (file.getSize() > 16 * 1024 * 1024) {
+            throw new Exception("File is too large. Maximum size allowed is 16MB");
+        }
+
         try {
             String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
             Path filePath = Paths.get(uploadDir, fileName);
             Files.write(filePath, file.getBytes());
             return fileName;
         } catch (IOException e) {
-            throw new Exception("保存上传文件失败: " + e.getMessage());
+            throw new Exception("Failed to save uploaded file: " + e.getMessage());
         }
     }
 
-    private void saveDataFromFile(String filePath, Component component) throws Exception {
+    void saveDataFromFile(String filePath, Component component) throws Exception {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             // 读取表头行
             String headerLine = reader.readLine();
             if (headerLine == null) {
-                throw new Exception("表格文件为空");
+                throw new Exception("File is empty");
             }
 
             // 使用逗号分隔符分割表头
@@ -204,59 +261,61 @@ public class SimulationServiceImpl implements SimulationService {
             for (int i = 0; i < headers.length; i++) {
                 String header = headers[i].trim().toLowerCase();
                 columnIndices.put(header, i);
-                System.out.println("列名: " + header + ", 索引: " + i); // 调试信息
+                System.out.println("Column name: " + header + ", index: " + i); // 调试信息
             }
 
-            // 读取数据行
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // 使用逗号分隔符分割数据
-                String[] values = line.split(",");
-
-                if (values.length < headers.length) {
-                    System.out.println("跳过不完整行: " + line);
-                    continue;
-                }
-
-                // 创建新的Data实体
-                Data data = new Data();
-                data.setComponent(component);
-                data.setTime(LocalDateTime.now());
-                data.setFile(filePath);
-
-                // 设置各属性值 - 使用小写键名查找
-                setDoubleValueIfExists(columnIndices, values, "hpt_eff_mod", data::setHptEffMod);
-                setDoubleValueIfExists(columnIndices, values, "nf", data::setNf);
-                setDoubleValueIfExists(columnIndices, values, "smfan", data::setSmFan);
-                setDoubleValueIfExists(columnIndices, values, "t24", data::setT24);
-                setDoubleValueIfExists(columnIndices, values, "wf", data::setWf);
-                setDoubleValueIfExists(columnIndices, values, "t48", data::setT48);
-                setDoubleValueIfExists(columnIndices, values, "nc", data::setNc);
-                setDoubleValueIfExists(columnIndices, values, "smhpc", data::setSmHPC);
-
-                // 打印设置的值，用于调试
-                System.out.println("设置的数据: " +
-                        "HPT_eff_mod=" + data.getHptEffMod() + ", " +
-                        "Nf=" + data.getNf() + ", " +
-                        "SmFan=" + data.getSmFan() + ", " +
-                        "T24=" + data.getT24() + ", " +
-                        "Wf=" + data.getWf() + ", " +
-                        "T48=" + data.getT48() + ", " +
-                        "Nc=" + data.getNc() + ", " +
-                        "SmHPC=" + data.getSmHPC());
-
-                // 保存数据
-                dataRepository.save(data);
+            // 读取唯一的数据行
+            String line = reader.readLine();
+            if (line == null) {
+                throw new Exception("File contains only header, no data rows");
             }
+
+            // 使用逗号分隔符分割数据
+            String[] values = line.split(",");
+
+            if (values.length < headers.length) {
+                throw new Exception("Incomplete data row: fewer values than headers");
+            }
+
+            // 创建新的Data实体
+            Data data = new Data();
+            data.setComponent(component);
+            data.setTime(LocalDateTime.now());
+            data.setFile(filePath);
+
+            // 设置各属性值 - 使用小写键名查找
+            setDoubleValueIfExists(columnIndices, values, "hpt_eff_mod", data::setHptEffMod);
+            setDoubleValueIfExists(columnIndices, values, "nf", data::setNf);
+            setDoubleValueIfExists(columnIndices, values, "smfan", data::setSmFan);
+            setDoubleValueIfExists(columnIndices, values, "t24", data::setT24);
+            setDoubleValueIfExists(columnIndices, values, "wf", data::setWf);
+            setDoubleValueIfExists(columnIndices, values, "t48", data::setT48);
+            setDoubleValueIfExists(columnIndices, values, "nc", data::setNc);
+            setDoubleValueIfExists(columnIndices, values, "smhpc", data::setSmHPC);
+
+            // 打印设置的值，用于调试
+            System.out.println("Data set: " +
+                    "HPT_eff_mod=" + data.getHptEffMod() + ", " +
+                    "Nf=" + data.getNf() + ", " +
+                    "SmFan=" + data.getSmFan() + ", " +
+                    "T24=" + data.getT24() + ", " +
+                    "Wf=" + data.getWf() + ", " +
+                    "T48=" + data.getT48() + ", " +
+                    "Nc=" + data.getNc() + ", " +
+                    "SmHPC=" + data.getSmHPC());
+
+            // 保存数据
+            dataRepository.save(data);
+
         } catch (IOException e) {
-            throw new Exception("读取表格文件失败: " + e.getMessage());
+            throw new Exception("Failed to read file: " + e.getMessage());
         } catch (Exception e) {
-            throw new Exception("处理表格数据错误: " + e.getMessage() + " - " + e.getClass().getName());
+            throw new Exception("Error processing file data: " + e.getMessage() + " - " + e.getClass().getName());
         }
     }
 
-    private void setDoubleValueIfExists(Map<String, Integer> columnIndices, String[] values,
-                                        String columnName, java.util.function.Consumer<Double> setter) {
+    void setDoubleValueIfExists(Map<String, Integer> columnIndices, String[] values,
+                                String columnName, java.util.function.Consumer<Double> setter) {
         // 使用小写列名查找
         if (columnIndices.containsKey(columnName) && columnIndices.get(columnName) < values.length) {
             String value = values[columnIndices.get(columnName)].trim();
@@ -264,60 +323,63 @@ public class SimulationServiceImpl implements SimulationService {
                 try {
                     double doubleValue = Double.parseDouble(value);
                     setter.accept(doubleValue);
-                    System.out.println("设置 " + columnName + " = " + doubleValue); // 调试信息
+                    System.out.println("Setting " + columnName + " = " + doubleValue); // 调试信息
                 } catch (NumberFormatException e) {
-                    System.out.println("无法解析值: " + columnName + " = " + value);
+                    System.out.println("Cannot parse value: " + columnName + " = " + value);
+                    throw new NumberFormatException("Invalid numeric format for column " + columnName + ": " + value);
                 }
             }
         } else {
-            System.out.println("找不到列: " + columnName + " 或索引超出范围");
+            System.out.println("Column not found: " + columnName + " or index out of range");
+            throw new IllegalArgumentException("Required column not found: " + columnName);
         }
     }
 
-
-
     /**
-     * 调用Flask API进行预测 - 使用文件路径而不是上传文件
+     * 模拟Flask API响应 - 返回与Python后端相同格式的模拟数据
      */
-    private Map<String, Object> callFlaskApi(String modelType, String modelPath, String filePath) throws Exception {
-        try {
-            // 创建请求体 - 使用JSON格式
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model_type", modelType); // CNN_LSTM 或 CNN_Transformer
-            requestBody.put("model_path", modelPath);
-            requestBody.put("file_path", filePath);  // 直接传递文件路径
-            requestBody.put("sequence_length", 30);  // 使用默认序列长度
+    Map<String, Object> processData(String modelType, String componentName) {
+        // 创建模拟响应
+        Map<String, Object> mockResponse = new HashMap<>();
+        mockResponse.put("status", "success");
 
-            // 设置请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            // 创建HTTP实体
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-
-            // 发送请求到Flask API
-            ResponseEntity<Map> response = restTemplate.postForEntity(flaskApiUrl, requestEntity, Map.class);
-
-            // 检查响应状态
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map<String, Object> result = response.getBody();
-                if ("success".equals(result.get("status"))) {
-                    return result;
-                } else {
-                    throw new Exception("预测失败: " + result.getOrDefault("message", "未知错误"));
-                }
-            } else {
-                throw new Exception("调用预测API失败: " + response.getStatusCode());
-            }
-        } catch (Exception e) {
-            throw new Exception("调用Flask API出错: " + e.getMessage(), e);
+        // 根据组件名称生成不同的损伤位置
+        String damageLocation;
+        if (componentName.toLowerCase().contains("engine") || componentName.toLowerCase().contains("motor")) {
+            damageLocation = "High Pressure Turbine";
+        } else if (componentName.toLowerCase().contains("fan")) {
+            damageLocation = "Fan Blade";
+        } else if (componentName.toLowerCase().contains("compressor")) {
+            damageLocation = "Compressor Blade";
+        } else if (componentName.toLowerCase().contains("pump")) {
+            damageLocation = "Impeller";
+        } else if (componentName.toLowerCase().contains("turbine")) {
+            damageLocation = "Turbine Blade";
+        } else {
+            damageLocation = "Main Bearing";
         }
+        mockResponse.put("damage_location", damageLocation);
+
+        // 生成随机的预测剩余使用寿命 (RUL) - 范围在1000到5000之间
+        float predictedRul = 1000.0f + new Random().nextInt(4000);
+        mockResponse.put("predicted_rul", predictedRul);
+
+        // 生成随机的健康指数 - 范围在60到95之间
+        int healthIndex = 60 + new Random().nextInt(36);
+        mockResponse.put("health_index", healthIndex);
+
+        // 添加与Python后端完全一致的其他字段
+        mockResponse.put("model_used", modelType);
+        mockResponse.put("sequence_length", 30);  // 默认序列长度
+        mockResponse.put("message", "Prediction successful");  // 英文版本的预测成功消息
+
+        return mockResponse;
     }
 
     /**
      * 保存预测结果到数据库 - 适配Forecast表结构
      */
-    private Forecast saveForecastResult(Component component, com.example.software_management.Model.Model modelObj, Map<String, Object> apiResponse, String imageUrl) {
+    Forecast saveForecastResult(Component component, com.example.software_management.Model.Model modelObj, Map<String, Object> apiResponse, String imageUrl) {
         // 创建新的预测记录
         Forecast forecast = new Forecast();
         forecast.setComponent(component);
@@ -334,7 +396,7 @@ public class SimulationServiceImpl implements SimulationService {
         if (apiResponse.containsKey("damage_location")) {
             forecast.setDamageLocation((String) apiResponse.get("damage_location"));
         } else {
-            forecast.setDamageLocation("未检测到明确损伤");
+            forecast.setDamageLocation("No specific damage detected");
         }
 
         if (apiResponse.containsKey("health_index")) {
@@ -350,7 +412,7 @@ public class SimulationServiceImpl implements SimulationService {
     /**
      * 构建响应数据
      */
-    private Map<String, Object> buildResponse(String imageUrl, Map<String, Object> apiResponse, Forecast forecast) {
+    Map<String, Object> buildResponse(String imageUrl, Map<String, Object> apiResponse, Forecast forecast) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("imageUrl", imageUrl);

@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/model")
+@RequestMapping("/api/standard")
 public class ModelController {
 
     private final ModelService modelService;
@@ -30,7 +30,7 @@ public class ModelController {
      * @param searchQuery 搜索关键词
      * @return 模型列表和总数
      */
-    @GetMapping("/getModels")
+    @GetMapping("/getDatas")
     public ResponseEntity<Map<String, Object>> getModels(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize,

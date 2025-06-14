@@ -34,4 +34,6 @@ public class Model {
     @OneToMany(mappedBy = "model", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Forecast> forecasts;
+
+
 }

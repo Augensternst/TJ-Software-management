@@ -25,19 +25,18 @@ public class SimulationController {
 
     /**
      * 获取模拟结果
-     * @param modelId 模型ID
      * @param deviceId 设备ID
      * @param file 上传的数据文件
      * @return 模拟结果
      */
     @PostMapping(value = "/getSimulationResult", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> getSimulationResult(
-            @RequestParam int modelId,
+            @RequestParam int standardDataId,
             @RequestParam int deviceId,
             @RequestParam MultipartFile file) {
 
         try {
-            Map<String, Object> response = simulationService.getSimulationResult(modelId, deviceId, file);
+            Map<String, Object> response = simulationService.getSimulationResult(standardDataId, deviceId, file);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();

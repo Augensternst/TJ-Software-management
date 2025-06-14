@@ -38,18 +38,9 @@ public class ComponentServiceImpl implements ComponentService {
 
     @Override
     public Page<ComponentDTO> getUserDevices(Integer userId, String searchQuery, int page, int pageSize) {
-        // 验证页码和每页大小参数
-        if (page < 1) {
-            page = 1; // 如果页码小于1，则使用默认值1
-        }
-
-        if (pageSize < 1) {
-            pageSize = 10; // 如果每页大小小于1，则使用默认值10
-        } else if (pageSize > 50) {
-            pageSize = 50; // 如果每页大小大于50，则使用最大值50
-        }
 
         Pageable pageable = PageRequest.of(page - 1, pageSize);
+        System.out.println(pageable);
 
         Page<Component> componentPage;
         if (searchQuery == null || searchQuery.isEmpty()) {

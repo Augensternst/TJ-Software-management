@@ -61,6 +61,17 @@ public class ComponentController {
         int pageSize = requestBody.containsKey("pageSize") ?
                 Integer.parseInt(requestBody.get("pageSize").toString()) : 10;
 
+        // 验证页码和每页大小参数
+        if (page < 1) {
+            page = 1; // 如果页码小于1，则使用默认值1
+        }
+
+        if (pageSize < 1) {
+            pageSize = 10; // 如果每页大小小于1，则使用默认值10
+        } else if (pageSize > 50) {
+            pageSize = 50; // 如果每页大小大于50，则使用最大值50
+        }
+
         Page<ComponentDTO> devicePage = componentService.getUserDevices(userId, searchQuery, page, pageSize);
 
         Map<String, Object> response = new HashMap<>();

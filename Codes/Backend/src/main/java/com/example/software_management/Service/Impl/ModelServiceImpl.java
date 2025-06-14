@@ -43,9 +43,15 @@ public class ModelServiceImpl implements ModelService {
         Page<Model> modelsPage;
         if (searchQuery == null || searchQuery.trim().isEmpty()) {
             modelsPage = modelRepository.findAll(pageable);
+
         } else {
             modelsPage = modelRepository.findByNameContaining(searchQuery, pageable);
+
         }
+        System.out.println("====================================================");
+        System.out.println(modelsPage.getTotalElements());
+        System.out.println(modelsPage);
+        System.out.println("====================================================");
 
         // 准备返回数据
         List<Map<String, Object>> modelsList = new ArrayList<>();
