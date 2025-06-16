@@ -109,7 +109,7 @@ export default {
           message: "选择标准数据",
           searchQuery: '',
           currentPage: 1,
-          pageSize: 3,
+          pageSize: 10,
           totalPages: 1,
         },
         device: {
@@ -118,7 +118,7 @@ export default {
           message: "选择设备",
           searchQuery: '',
           currentPage: 1,
-          pageSize: 3,
+          pageSize: 10,
           totalPages: 1,
         },
       },

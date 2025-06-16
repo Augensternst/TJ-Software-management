@@ -43,7 +43,7 @@ export function getDeviceList() {
     method: 'post',
     data: {
       page: 1,
-      pageSize: 1
+      pageSize: 10
     }
   });
 }
