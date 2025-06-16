@@ -207,7 +207,7 @@
     // 存储token和用户信息
     localStorage.setItem('token', res.data.token);
     // 跳转主页面
-    this.$router.push('/main');
+    this.$router.push('/main/device-center');
   } catch (error) {
     console.error('登录失败:', error);
     alert('登录失败，请检查用户名或密码');
