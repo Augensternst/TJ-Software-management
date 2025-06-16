@@ -126,7 +126,8 @@ export default {
       startTime: '',
       endTime: '',
       selectedRows: [],
-
+      // 防抖定时器
+      searchTimer: null,
       alertList: [],
       loading: false,
       // 分页相关
@@ -143,7 +144,27 @@ export default {
     async fetchAlertList() {
       this.loading = true
       try {
-        const response = await getUnconfirmedAlerts();
+        // 构建请求参数
+        const params = {
+          page: this.currentPage,
+          pageSize: this.pageSize
+        }
+
+        // 添加设备名称搜索参数
+        if (this.searchQuery && this.searchQuery.trim()) {
+          params.deviceName = this.searchQuery.trim()
+        }
+
+        // 添加开始时间参数
+        if (this.startTime) {
+          params.startTime = this.startTime
+        }
+
+        // 添加结束时间参数
+        if (this.endTime) {
+          params.endTime = this.endTime
+        }
+        const response = await getUnconfirmedAlerts(params);
 
         if (response.data.success) {
           // 转换数据格式
@@ -230,22 +251,6 @@ async exportReport() {
       return map[status] || '未知状态'
     },
 
-    /*
-    async confirmAlerts(alertIds) {
-      try {
-        const response = await api.post('/alerts/confirm', {
-          alertIds: alertIds.map(id => parseInt(id.replace('ALT', '')))
-        })
-
-        if (response.data.success) {
-          return true
-        }
-      } catch (error) {
-        console.error('确认警报失败:', error)
-        throw new Error('确认操作失败')
-      }
-    },*/
-
 
     // 修改分页处理
     handleSizeChange(size) {
@@ -261,26 +266,34 @@ async exportReport() {
 
     // 处理搜索输入
     handleSearch() {
-      this.currentPage = 1 // 重置到第一页
-      this.fetchAlertList()
+      // 清除之前的定时器
+      if (this.searchTimer) {
+        clearTimeout(this.searchTimer)
+      }
+
+      // 设置新的定时器，500ms后执行搜索
+      this.searchTimer = setTimeout(() => {
+        this.currentPage = 1 // 重置到第一页
+        this.fetchAlertList()
+      }, 500)
     },
 
     // 处理日期变化
     handleDateChange() {
+      // 验证日期范围
+      if (this.startTime && this.endTime) {
+        const start = new Date(this.startTime)
+        const end = new Date(this.endTime)
+
+        if (start > end) {
+          this.$message.warning('开始时间不能大于结束时间')
+          return
+        }
+      }
+
       this.currentPage = 1 // 重置到第一页
       this.fetchAlertList()
     },
-
-    /*handleSizeChange(size) {
-      this.pageSize = size
-      this.fetchAlertList()
-    },*/
-
-    // 处理页码变化
-    /*handleCurrentChange(page) {
-      this.currentPage = page
-      this.fetchAlertList()
-    },*/
 
  // 修改后的确认方法（单个）
 async handleConfirm(row) {
